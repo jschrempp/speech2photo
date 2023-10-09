@@ -358,7 +358,7 @@ for i in range(loopsMax):
         from PIL import Image, ImageDraw, ImageFont
         img = Image.open("image.png")
         draw = ImageDraw.Draw(img)
-        draw.rectangle(((0, img.height - 50), (img.width, img.height)), fill="black")
+        draw.rectangle(((0, img.height - 25), (img.width, img.height)), fill="black")
         #font = ImageFont.truetype("arial.ttf", 16)
         draw.text((10, img.height - 20), keywords, (255,255,255))
         img.save("image.png")
