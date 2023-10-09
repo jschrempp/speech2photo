@@ -323,7 +323,7 @@ for i in range(loopsMax):
 
         if args.savefiles and args.transcript == 0:
             f = open(timestr + "-rawtranscript" + ".txt", "w")
-            f.write(transcript["text"])
+            f.write(transcript)
             f.close()
 
     # Summary
@@ -351,21 +351,29 @@ for i in range(loopsMax):
 
         imageURL = getImageURL(args.image, keywords)
 
+        # save the image from a url
+        urllib.request.urlretrieve(imageURL, "image.png")
+
+        # add text to an pil image
+        from PIL import Image, ImageDraw, ImageFont
+        img = Image.open("image.png")
+        draw = ImageDraw.Draw(img)
+        draw.rectangle(((0, img.height - 50), (img.width, img.height)), fill="black")
+        #font = ImageFont.truetype("arial.ttf", 16)
+        draw.text((10, img.height - 20), keywords, (255,255,255))
+        img.save("image.png")
+
+        imageURL = "file://" + os.getcwd() + "/image.png"
+        logger.debug("imageURL: " + imageURL)
+
         if args.savefiles and args.image == 0:
-            # save the image from a url
-            urllib.request.urlretrieve(imageURL, "image.png")
             os.rename("image.png", timestr + "-image" + ".png")
         
     # Display
+    logger.info("Displaying image...")
     webbrowser.open(imageURL)
 
-    # add text to an pil image
-    # from PIL import Image, ImageDraw, ImageFont
-    # img = Image.open("image.png")
-    # draw = ImageDraw.Draw(img)
-    # font = ImageFont.truetype("arial.ttf", 16)
-    # draw.text((0, 0), "This is a test", (255,255,255), font=font)
-    # img.save("image.png")
+
 
     #combine 4 images into one
     # from PIL import Image
