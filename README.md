@@ -1,11 +1,12 @@
 # speech2picture
-Based on the WhisperFrame project idea on Hackaday. 
+Based on the WhisperFrame project idea on Hackaday.  
+https://hackaday.com/2023/09/22/whisperframe-depicts-the-art-of-conversation/
 
-Python code to record audio from the default microphone and then transcribe it using OpenAI
-Then summarize the transcript and generate a picture based on the summary
-Then open the picture in a browser
-Then delay for 60 seconds
-Then repeat the process
+- Python code to record audio from the default microphone and then transcribe it using OpenAI
+- Then summarize the transcript and generate a picture based on the summary
+- Then open the picture in a browser
+- Then delay for 60 seconds
+- Then repeat the process
 Author: Jim Schrempp 2023 
 
 To run:  python3 pyspeech.py
