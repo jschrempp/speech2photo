@@ -372,7 +372,7 @@ for i in range(loopsMax):
         # combine the images into one image
         #widths, heights = zip(*(i.size for i in imgObjects))
         total_width = 512*2
-        max_height = 512*2 + 25
+        max_height = 512*2 + 50
         new_im = Image.new('RGB', (total_width, max_height))
         locations = [(0,0), (512,0), (0,512), (512,512)]
         count = -1
@@ -382,9 +382,11 @@ for i in range(loopsMax):
 
         # add text at the bottom
         draw = ImageDraw.Draw(new_im)
-        draw.rectangle(((0, new_im.height - 25), (new_im.width, new_im.height)), fill="black")
-        #font = ImageFont.truetype("arial.ttf", 16)
-        draw.text((10, new_im.height - 20), keywords, (255,255,255))
+        draw.rectangle(((0, new_im.height - 50), (new_im.width, new_im.height)), fill="black")
+        font = ImageFont.truetype("arial.ttf", 18)
+        # decide if text will exceed the width of the image
+        #textWidth, textHeight = font.getsize(text)
+        draw.text((10, new_im.height - 30), keywords, (255,255,255), font=font)
 
         # save the combined image
         newFileName = timestr + "-image" + ".png"
