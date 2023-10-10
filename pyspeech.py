@@ -26,12 +26,14 @@ import re
 import os
 import openai
 from enum import IntEnum
+from PIL import Image, ImageDraw, ImageFont
 
 # Set the duration of each recording in seconds
 duration = 15
 
 # Prompt for abstraction
-promptForAbstraction = "What is the most interesting concept in the following text expressing it as a noun phrase?"
+promptForAbstraction = "What is the most interesting concept in the following text \
+    expressing it as a noun phrase, but not in a full sentence?"
 
 logger = logging.getLogger(__name__)
 loggerTrace = logging.getLogger("Prompts") 
@@ -207,17 +209,22 @@ def getImageURL(imageArg, phrase):
         logger.info("image prompt: " + prompt)
 
         # use openai to generate a picture based on the summary
-        responseSummary = openai.Image.create(
+        responseImage = openai.Image.create(
             prompt= prompt,
-            n=1,
+            n=4,
             size="512x512"
             )
         
-        image_url = responseSummary['data'][0]['url']
+        loggerTrace.debug("responseImage: " + str(responseImage))
+
+        image_url = [responseImage['data'][0]['url']] * 4
+        image_url[1] = responseImage['data'][1]['url']
+        image_url[2] = responseImage['data'][2]['url']
+        image_url[3] = responseImage['data'][3]['url']
 
 
     else:
-        image_url = imageArg
+        image_url = [imageArg]
         logger.info("Using image file: " + imageArg)
 
     return image_url
@@ -349,25 +356,46 @@ for i in range(loopsMax):
     # Image
     if firstProcessStep <= processStep.Image:
 
-        imageURL = getImageURL(args.image, keywords)
+        imageURL = getImageURL(args.image, keywords)    
 
-        # save the image from a url
-        urllib.request.urlretrieve(imageURL, "image.png")
+        imgObjects = []
 
-        # add text to an pil image
-        from PIL import Image, ImageDraw, ImageFont
-        img = Image.open("image.png")
-        draw = ImageDraw.Draw(img)
-        draw.rectangle(((0, img.height - 25), (img.width, img.height)), fill="black")
+        # save the images from a urls into imgObjects[]
+        for numURL in range(len(imageURL)):
+            fileName = "image" + str(numURL) + ".png"
+            urllib.request.urlretrieve(imageURL[numURL], fileName)
+
+            img = Image.open(fileName)
+
+            imgObjects.append(img)
+
+        # combine the images into one image
+        #widths, heights = zip(*(i.size for i in imgObjects))
+        total_width = 512*2
+        max_height = 512*2 + 25
+        new_im = Image.new('RGB', (total_width, max_height))
+        locations = [(0,0), (512,0), (0,512), (512,512)]
+        count = -1
+        for loc in locations:
+            count += 1
+            new_im.paste(imgObjects[count], loc)
+
+        # add text at the bottom
+        draw = ImageDraw.Draw(new_im)
+        draw.rectangle(((0, new_im.height - 25), (new_im.width, new_im.height)), fill="black")
         #font = ImageFont.truetype("arial.ttf", 16)
-        draw.text((10, img.height - 20), keywords, (255,255,255))
-        img.save("image.png")
+        draw.text((10, new_im.height - 20), keywords, (255,255,255))
 
-        imageURL = "file://" + os.getcwd() + "/image.png"
+        # save the combined image
+        newFileName = timestr + "-image" + ".png"
+        new_im.save(newFileName)
+
+        #if args.savefiles and args.image == 0:
+        #os.rename("image.png", timestr + "-image" + ".png")
+        #os.rename('combined.png', timestr + "-image" + ".png")
+
+        imageURL = "file://" + os.getcwd() + "/" + newFileName
         logger.debug("imageURL: " + imageURL)
-
-        if args.savefiles and args.image == 0:
-            os.rename("image.png", timestr + "-image" + ".png")
         
     # Display
     logger.info("Displaying image...")
@@ -375,22 +403,7 @@ for i in range(loopsMax):
 
 
 
-    #combine 4 images into one
-    # from PIL import Image
-    # im1 = Image.open("image1.png")
-    # im2 = Image.open("image2.png")
-    # im3 = Image.open("image3.png")
-    # im4 = Image.open("image4.png")
-    # images = [im1, im2, im3, im4]
-    # widths, heights = zip(*(i.size for i in images))
-    # total_width = sum(widths)
-    # max_height = max(heights)
-    # new_im = Image.new('RGB', (total_width, max_height))
-    # x_offset = 0
-    # for im in images:
-    #   new_im.paste(im, (x_offset,0))
-    #   x_offset += im.size[0]
-    # new_im.save('combined.png')
+    
 
 
 
