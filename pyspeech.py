@@ -29,7 +29,7 @@ from enum import IntEnum
 from PIL import Image, ImageDraw, ImageFont
 
 # Set the duration of each recording in seconds
-duration = 15
+duration = 60
 
 # Prompt for abstraction
 promptForAbstraction = "What is the most interesting concept in the following text \
@@ -176,12 +176,18 @@ def getAbstractForImageGen(extractArg, summary):
         # extract the abstract from the response
         abstract = responseForImage['choices'][0]['message']['content'].strip() 
         
-        # delete a phrase from the summary without regard to case
-        # deletePhrase = "The most interesting concept in the text is"
+        # delete text before the first double quote
+        abstract = abstract[abstract.find("\"")+1:]
+
+        # delete text before the first colon
+        abstract = abstract[abstract.find(":")+1:]
+
+        # delete the text "the concept of" from the abstract
+        deletePhrase = "the concept of"
         # compilation step to escape the word for all cases
-        #compiled = re.compile(re.escape(deletePhrase), re.IGNORECASE)
-        #res = compiled.sub(" ", nounsAndVerbs)
-        #nounsAndVerbs = str(res)
+        compiled = re.compile(re.escape(deletePhrase), re.IGNORECASE)
+        res = compiled.sub(" ", abstract)
+        abstract = str(res)
         
         logger.info("Abstract: " + abstract)
 
@@ -296,6 +302,9 @@ else:
     loopsMax = 10  # only loop if we're recording new audio each time
     loopDelay = 120 # delay if we're looping
 
+# create a directory if one does not exist
+if not os.path.exists("history"):
+    os.makedirs("history")
 
 
 # ----------------------
@@ -320,8 +329,8 @@ for i in range(loopsMax):
          
         if args.savefiles:
             #copy the file to a new name with the time stamp
-            shutil.copy(soundFileName, timestr + "-recording" + ".wav")
-            soundFileName = timestr + "-recording" + ".wav"
+            shutil.copy(soundFileName, "history/" + timestr + "-recording" + ".wav")
+            soundFileName = "history/" + timestr + "-recording" + ".wav"
    
     # Transcribe
     if firstProcessStep <= processStep.Transcribe:
@@ -329,19 +338,22 @@ for i in range(loopsMax):
         transcript = getTranscript(args.transcript, soundFileName)
 
         if args.savefiles and args.transcript == 0:
-            f = open(timestr + "-rawtranscript" + ".txt", "w")
+            f = open("history/" + timestr + "-rawtranscript" + ".txt", "w")
             f.write(transcript)
             f.close()
 
     # Summary
     if firstProcessStep <= processStep.Summarize:
 
+        """ Skip summarization for now
+
         summary = getSummary(args.summary, transcript)
 
         if args.savefiles and args.summary == 0:
-            f = open(timestr + "-summary" + ".txt", "w")
+            f = open("history/" + timestr + "-summary" + ".txt", "w")
             f.write(summary)
             f.close()
+        """
 
     # Keywords    
     if firstProcessStep <= processStep.Keywords:
@@ -349,7 +361,7 @@ for i in range(loopsMax):
         keywords = getAbstractForImageGen(args.keywords, transcript)
 
         if args.savefiles and args.keywords == 0:
-            f = open(timestr + "-keywords" + ".txt", "w")
+            f = open("history/" + timestr + "-keywords" + ".txt", "w")
             f.write(keywords)
             f.close()
 
@@ -362,7 +374,7 @@ for i in range(loopsMax):
 
         # save the images from a urls into imgObjects[]
         for numURL in range(len(imageURL)):
-            fileName = "image" + str(numURL) + ".png"
+            fileName = "history/" + "image" + str(numURL) + ".png"
             urllib.request.urlretrieve(imageURL[numURL], fileName)
 
             img = Image.open(fileName)
@@ -389,7 +401,7 @@ for i in range(loopsMax):
         draw.text((10, new_im.height - 30), keywords, (255,255,255), font=font)
 
         # save the combined image
-        newFileName = timestr + "-image" + ".png"
+        newFileName = "history/" + timestr + "-image" + ".png"
         new_im.save(newFileName)
 
         #if args.savefiles and args.image == 0:
@@ -402,14 +414,6 @@ for i in range(loopsMax):
     # Display
     logger.info("Displaying image...")
     webbrowser.open(imageURL)
-
-
-
-    
-
-
-
-
 
     #delay
     print("delaying...")
