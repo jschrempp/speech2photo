@@ -69,6 +69,7 @@ def recordAudioFromMicrophone():
     soundfile.write('recording.wav', recording, sample_rate)
 
     soundFileName = 'recording.wav'
+    os.system('say "Now analyzing."')
 
     return soundFileName
 
