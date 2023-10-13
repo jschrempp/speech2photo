@@ -1,14 +1,37 @@
 """
-Python code to record audio from the default microphone and then transcribe it using OpenAI
-    Then summarize the transcript and generate a picture based on the summary
-    Then open the picture in a browser
-    Then delay for 60 seconds
-    Then repeat the process
-    
-To run:  python3 pyspeech.py
-control-c to stop the program or it will end after loopsMax loops about (duration + delay)*loopsMax seconds
+This program generates photos from random audio conversations and displays 
+them on the screen. When run on command, it is an interesting exercise in the power of OpenAI.
+When run in continuous mode, it is a creepy photo generator because it shows how good openAI is 
+at understanding what you are saying.
 
-To run this you need to get an OpenAI API key and put it in a file called "creepy photo secret key"
+There is a step that is now commented out that summarizes the transcript. The summary is 
+errily accurate.
+
+Basic flow:
+    * record audio from the default microphone and then transcribe it using OpenAI
+    * summarize the transcript and generate 4 pictures based on the summary
+    * combine the four images into a single image
+    * open the picture in a browser
+    * optionally, delay for 60 seconds and repeat the process
+    * images are stored in the history directory
+
+The program can be run in two modes:
+    
+1/  python3 pyspeech.py
+    This will display a menu and prompt you for a command. 
+2/  python3 pyspeech.py -h
+    For testing. Use command line arguments  
+
+control-c to stop the program. When run in auto mode it will loop 10 times
+
+For debug output, use the -d 2 argument. This will show the prompts and responses to/from OpenAI.
+
+To run this you need to get an OpenAI API key and put it in a file called "creepy photo secret key".
+OpenAI currently costs a few pennies to use. I've run this for an hour at a cost of $1.00. It was
+well worth it.
+
+Based on the WhisperFrame project idea on Hackaday.
+https://hackaday.com/2023/09/22/whisperframe-depicts-the-art-of-conversation/
 
 Author: Jim Schrempp 2023 
 """
@@ -31,9 +54,30 @@ from PIL import Image, ImageDraw, ImageFont
 # Set the duration of each recording in seconds
 duration = 60
 
+# Set the number of times to loop when in auto mode
+loopsMax = 10
+
 # Prompt for abstraction
 promptForAbstraction = "What is the most interesting concept in the following text \
-    expressing it as a noun phrase, but not in a full sentence?"
+    expressing the answer as a noun phrase, but not in a full sentence "
+
+# image modifiers
+imageModifiersArtist = [
+                    " in the style of Picasso",
+                    " in the style of Van Gogh",
+                    " in the style of Monet",
+                    " in the style of Dali",
+                    " in the style of Escher",
+                    " in the style of Rembrandt",
+                    ]
+imageModifiersMedium = [
+                    " as a painting",
+                    " as a watercolor",
+                    " as a sketch",
+                    " as a drawing",
+                    " as a sculpture",
+                    " as a photograph",
+                    ]
 
 logger = logging.getLogger(__name__)
 loggerTrace = logging.getLogger("Prompts") 
@@ -49,7 +93,7 @@ def recordAudioFromMicrophone():
         pass # do nothing   
 
     # print the devices
-    # print(sd.query_devices())
+    # print(sd.query_devices())  # in case you have trouble with the devices
 
     # Set the sample rate and number of channels for the recording
     sample_rate = int(sounddevice.query_devices(1)['default_samplerate'])
@@ -57,7 +101,7 @@ def recordAudioFromMicrophone():
 
     logger.debug('sample_rate: %d; channels: %d', sample_rate, channels)
 
-    logger.info("Recording...")
+    logger.info("Recording %d seconds...", duration)
     os.system('say "Recording."')
     # Record audio from the default microphone
     recording = sounddevice.rec(int(duration * sample_rate), samplerate=sample_rate, channels=channels)
@@ -69,170 +113,128 @@ def recordAudioFromMicrophone():
     soundfile.write('recording.wav', recording, sample_rate)
 
     soundFileName = 'recording.wav'
-    os.system('say "Now analyzing."')
-
-    return soundFileName
-
-# ----------------------
-# get audio 
-#
-def getAudio(wavFileArg):
-    
-    if wavFileArg == 0:
-        # record audio from the default microphone
-        soundFileName = recordAudioFromMicrophone()
-    else:
-        # use the file specified by the wav argument
-        soundFileName = wavFileArg
-        logger.info("Using audio file: " + wavFileArg)
+    os.system('say "Thank you. I am now analyzing."')
 
     return soundFileName
 
 # ----------------------
 # transcribe the audio file and return the transcript
 #
-def getTranscript(trascripitFileArg, wavFileName):
-    
-    if trascripitFileArg == 0:
+def getTranscript(wavFileName):
 
-        # transcribe the recording
-        # Note: you need to be using OpenAI Python v0.27.0 for the code below to work
-        logger.info("Transcribing...")
-        audio_file= open(wavFileName, "rb")
-        responseTranscript = openai.Audio.transcribe("whisper-1", audio_file)
+    # transcribe the recording
+    # Note: you need to be using OpenAI Python v0.27.0 for the code below to work
+    logger.info("Transcribing...")
+    audio_file= open(wavFileName, "rb")
+    responseTranscript = openai.Audio.transcribe("whisper-1", audio_file)
 
-        # print the transcript
-        loggerTrace.debug("Transcript: " + str(responseTranscript))
+    # print the transcript
+    loggerTrace.debug("Transcript: " + str(responseTranscript))
 
-        # get the text from the transcript
-        transcript = responseTranscript["text"]
-
-
-    else:
-        # use the text file specified 
-        transcriptFile = open(trascripitFileArg, "r")
-        # read the transcript file
-        transcript = transcriptFile.read()
-        logger.info("Using transcript file: " + trascripitFileArg)
+    # get the text from the transcript
+    transcript = responseTranscript["text"]     
 
     return transcript
 
 # ----------------------
 # summarize the transcript and return the summary
 #
-def getSummary(summaryArg, transcript):
+def getSummary(textInput):
     
-    if summaryArg == 0:
-        # summarize the transcript 
-        logger.info("Summarizing...")
+    # summarize the transcript 
+    logger.info("Summarizing...")
 
-        responseSummary = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "user", "content" : 
-                f"Please summarize the following text:\n{transcript}" }
-            ]              
-            
-        )
-        loggerTrace.debug("responseSummary: " + str(responseSummary))
+    responseSummary = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "user", "content" : 
+            f"Please summarize the following text:\n{textInput}" }
+        ]               
+    )
+    loggerTrace.debug("responseSummary: " + str(responseSummary))
 
-        summary = responseSummary['choices'][0]['message']['content'].strip()
-        
-        logger.debug("Summary: " + summary)
-
-    else:
-        # use the text file specified by the transcript argument
-        summaryFile = open(summaryArg, "r")
-        # read the summary file
-        summary = summaryFile.read()
-        logger.info("Using summary file: " + summaryArg)
+    summary = responseSummary['choices'][0]['message']['content'].strip()
+    
+    logger.debug("Summary: " + summary)
 
     return summary
 
 # ----------------------
 # get keywords for the image generator and return the keywords
 #
-def getAbstractForImageGen(extractArg, summary):
+def getAbstractForImageGen(inputText):
 
-    nounsAndVerbs = ""
+    # extract the keywords from the summary
 
-    if extractArg == 0:
-        # extract the keywords from the summary
+    logger.info("Extracting...")
+    logger.debug("Prompt for abstraction: " + promptForAbstraction)    
 
-        logger.info("Extracting...")
-        logger.debug("Prompt for abstraction: " + promptForAbstraction)    
+    prompt = promptForAbstraction + "'''" + inputText + "'''"
+    loggerTrace.debug ("prompt for extract: " + prompt)
 
-        prompt = promptForAbstraction + "\"" + summary + "\""
-        loggerTrace.debug ("prompt for extract: " + prompt)
+    responseForImage = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "user", "content": prompt}
+        ]              
+    )
 
-        responseForImage = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "user", "content": prompt}
-            ]              
-        )
+    loggerTrace.debug("responseForImageGen: " + str(responseForImage))
 
-        loggerTrace.debug("responseForImageGen: " + str(responseForImage))
-
-        # extract the abstract from the response
-        abstract = responseForImage['choices'][0]['message']['content'].strip() 
-        
-        # delete text before the first double quote
-        abstract = abstract[abstract.find("\"")+1:]
-
-        # delete text before the first colon
-        abstract = abstract[abstract.find(":")+1:]
-
-        # delete the text "the concept of" from the abstract
-        deletePhrase = "the concept of"
+    # extract the abstract from the response
+    abstract = responseForImage['choices'][0]['message']['content'].strip() 
+    
+    # Clean up the response from OpenAI
+    # delete text before the first double quote
+    abstract = abstract[abstract.find("\"")+1:]
+    # delete text before the first colon
+    abstract = abstract[abstract.find(":")+1:]
+    # eliminate phrases that are not useful for image generation
+    badPhrases = ["the concept of", "in the supplied text is", "the most interesting concept"
+                    "in the text is"]
+    for phrase in badPhrases:
         # compilation step to escape the word for all cases
-        compiled = re.compile(re.escape(deletePhrase), re.IGNORECASE)
+        compiled = re.compile(re.escape(phrase), re.IGNORECASE)
         res = compiled.sub(" ", abstract)
-        abstract = str(res)
-        
-        logger.info("Abstract: " + abstract)
+        abstract = str(res) 
 
-    else:
-        # use the extract file specified by the extract argument
-        summaryFile = open(extractArg, "r")
-        # read the summary file
-        abstract = summaryFile.read()
-        logger.info("Using abstract file: " + extractArg)
-
+    logger.info("Abstract: " + abstract)
 
     return abstract
 
 # ----------------------
-# get image url and return the url
+# get images and return the urls
 #
-def getImageURL(imageArg, phrase):
+def getImageURL(phrase):
 
-    if imageArg == 0:
-        # use the keywords to generate an image
+    # use the keywords to generate an image
 
-        prompt = f"Generate a picture based on the following: {phrase}"
+    prompt = "Generate a picture" 
+    # add a modifier to the phrase
+    # pick random modifiers
+    import random
+    random.shuffle(imageModifiersArtist)
+    random.shuffle(imageModifiersMedium)
+    prompt = prompt + imageModifiersArtist[0] + imageModifiersMedium[0]
 
-        logger.info("Generating image...")
-        logger.info("image prompt: " + prompt)
+    prompt = f"{prompt} for the following concept: {phrase}"
 
-        # use openai to generate a picture based on the summary
-        responseImage = openai.Image.create(
-            prompt= prompt,
-            n=4,
-            size="512x512"
-            )
-        
-        loggerTrace.debug("responseImage: " + str(responseImage))
+    logger.info("Generating image...")
+    logger.info("image prompt: " + prompt)
 
-        image_url = [responseImage['data'][0]['url']] * 4
-        image_url[1] = responseImage['data'][1]['url']
-        image_url[2] = responseImage['data'][2]['url']
-        image_url[3] = responseImage['data'][3]['url']
+    # use openai to generate a picture based on the summary
+    responseImage = openai.Image.create(
+        prompt= prompt,
+        n=4,
+        size="512x512"
+        )
+    
+    loggerTrace.debug("responseImage: " + str(responseImage))
 
-
-    else:
-        image_url = [imageArg]
-        logger.info("Using image file: " + imageArg)
+    image_url = [responseImage['data'][0]['url']] * 4
+    image_url[1] = responseImage['data'][1]['url']
+    image_url[2] = responseImage['data'][2]['url']
+    image_url[3] = responseImage['data'][3]['url']
 
     return image_url
 
@@ -245,19 +247,22 @@ def getImageURL(imageArg, phrase):
 #
 
 class processStep(IntEnum):
+    NoneSpecified = 0
     Audio = 1
     Transcribe = 2
     Summarize = 3
     Keywords = 4
     Image = 5
 
-print("\r\n\n\n\n\n")
-
 # set up logging
 logging.basicConfig(level=logging.WARNING, format=' %(asctime)s - %(levelname)s - %(message)s')
 
 # set the OpenAI API key
 openai.api_key_path = 'creepy photo secret key'
+
+# create a directory if one does not exist
+if not os.path.exists("history"):
+    os.makedirs("history")
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-s", "--savefiles", help="save the files", action="store_true") # optional argument
@@ -285,9 +290,10 @@ elif args.debug == 2:
 # if we're given a file then start at that step
 # check in order so that processStartStep will be the maximum value
 
-firstProcessStep = processStep.Audio
-
-if args.image != 0: 
+firstProcessStep = processStep.NoneSpecified
+if args.wav != 0:
+    firstProcessStep = processStep.Audio
+elif args.image != 0: 
     firstProcessStep = processStep.Image
 elif args.keywords != 0: 
     firstProcessStep = processStep.Keywords
@@ -296,131 +302,202 @@ elif args.summary != 0:
 elif args.transcript != 0: 
     firstProcessStep  = processStep.Transcribe
 
-if firstProcessStep > processStep.Audio or args.wav != 0:
-    loopsMax = 1
-    loopDelay = 0   # no delay if we're not looping
-else:
-    loopsMax = 10  # only loop if we're recording new audio each time
-    loopDelay = 120 # delay if we're looping
 
-# create a directory if one does not exist
-if not os.path.exists("history"):
-    os.makedirs("history")
 
 
 # ----------------------
 # Main Loop 
 #
 
-for i in range(loopsMax):
+done = False  # set to true to exit the loop
+loopDelay = 60 # delay between loops in seconds
 
-    # format a time string to use as a file name
-    timestr = time.strftime("%Y%m%d-%H%M%S")
+while not done:
 
-    soundFileName = ""
-    transcript = ""
-    summary = ""
-    keywords = ""
-    imageURL = ""
+    if firstProcessStep > processStep.Audio or args.wav != 0:
 
-    # Audio
-    if firstProcessStep == processStep.Audio:
-       
-        soundFileName = getAudio(args.wav)
-         
-        if args.savefiles:
-            #copy the file to a new name with the time stamp
-            shutil.copy(soundFileName, "history/" + timestr + "-recording" + ".wav")
-            soundFileName = "history/" + timestr + "-recording" + ".wav"
-   
-    # Transcribe
-    if firstProcessStep <= processStep.Transcribe:
-    
-        transcript = getTranscript(args.transcript, soundFileName)
+        # we have file parameters, so only loop once
+        numLoops = 1
+        loopDelay = 0   # no delay if we're not looping
 
-        if args.savefiles and args.transcript == 0:
-            f = open("history/" + timestr + "-rawtranscript" + ".txt", "w")
-            f.write(transcript)
-            f.close()
+    else:
+        # no command line input parameters so prompt the user for a command
 
-    # Summary
-    if firstProcessStep <= processStep.Summarize:
+        # print menu
+        print("\r\n\n\n")
+        print("Commands:")
+        print("   o: once, record and display; default")
+        print("   a: auto mode, record, display, and loop")
+        print("   q: quit")
 
-        """ Skip summarization for now
+        # wait for the user to press a key
+        inputCommand = input("Type a command ...")
 
-        summary = getSummary(args.summary, transcript)
+        if inputCommand == 'q': # quit
+            done = True
+            numLoops = 0
+            loopDelay = 0
 
-        if args.savefiles and args.summary == 0:
-            f = open("history/" + timestr + "-summary" + ".txt", "w")
-            f.write(summary)
-            f.close()
-        """
+        elif inputCommand == 'a': # auto mode
+            numLoops = loopsMax
+            print("Will loop: " + str(numLoops) + " times")
+            
+        else: # default is once
+            numLoops = 1
+            loopDelay = 0
+            firstProcessStep = processStep.Audio
 
-    # Keywords    
-    if firstProcessStep <= processStep.Keywords:
+    # loop will normally process audio and display the images
+    # but if we're given a file then start at that step (processStep)
+    for i in range(0,numLoops,1):
 
-        keywords = getAbstractForImageGen(args.keywords, transcript)
+        # format a time string to use as a file name
+        timestr = time.strftime("%Y%m%d-%H%M%S")
 
-        if args.savefiles and args.keywords == 0:
-            f = open("history/" + timestr + "-keywords" + ".txt", "w")
-            f.write(keywords)
-            f.close()
+        soundFileName = ""
+        transcript = ""
+        summary = ""
+        keywords = ""
+        imageURL = ""
 
-    # Image
-    if firstProcessStep <= processStep.Image:
+        # Audio
+        if firstProcessStep <= processStep.Audio:
 
-        imageURL = getImageURL(args.image, keywords)    
+            if args.wav == 0:
+                # record audio from the default microphone
+                soundFileName = recordAudioFromMicrophone()
 
-        imgObjects = []
-
-        # save the images from a urls into imgObjects[]
-        for numURL in range(len(imageURL)):
-            fileName = "history/" + "image" + str(numURL) + ".png"
-            urllib.request.urlretrieve(imageURL[numURL], fileName)
-
-            img = Image.open(fileName)
-
-            imgObjects.append(img)
-
-        # combine the images into one image
-        #widths, heights = zip(*(i.size for i in imgObjects))
-        total_width = 512*2
-        max_height = 512*2 + 50
-        new_im = Image.new('RGB', (total_width, max_height))
-        locations = [(0,0), (512,0), (0,512), (512,512)]
-        count = -1
-        for loc in locations:
-            count += 1
-            new_im.paste(imgObjects[count], loc)
-
-        # add text at the bottom
-        draw = ImageDraw.Draw(new_im)
-        draw.rectangle(((0, new_im.height - 50), (new_im.width, new_im.height)), fill="black")
-        font = ImageFont.truetype("arial.ttf", 18)
-        # decide if text will exceed the width of the image
-        #textWidth, textHeight = font.getsize(text)
-        draw.text((10, new_im.height - 30), keywords, (255,255,255), font=font)
-
-        # save the combined image
-        newFileName = "history/" + timestr + "-image" + ".png"
-        new_im.save(newFileName)
-
-        #if args.savefiles and args.image == 0:
-        #os.rename("image.png", timestr + "-image" + ".png")
-        #os.rename('combined.png', timestr + "-image" + ".png")
-
-        imageURL = "file://" + os.getcwd() + "/" + newFileName
-        logger.debug("imageURL: " + imageURL)
+                if args.savefiles:
+                    #copy the file to a new name with the time stamp
+                    shutil.copy(soundFileName, "history/" + timestr + "-recording" + ".wav")
+                    soundFileName = "history/" + timestr + "-recording" + ".wav"
         
-    # Display
-    logger.info("Displaying image...")
-    webbrowser.open(imageURL)
+            else:
+                # use the file specified by the wav argument
+                soundFileName = args.wav
+                logger.info("Using audio file: " + args.wav)
+    
+        # Transcribe
+        if firstProcessStep <= processStep.Transcribe:
+        
+            if args.transcript == 0:
+                # transcribe the recording
+                transcript = getTranscript(soundFileName)
 
-    #delay
-    print("delaying...")
-    time.sleep(loopDelay)
+                if args.savefiles:
+                    f = open("history/" + timestr + "-rawtranscript" + ".txt", "w")
+                    f.write(transcript)
+                    f.close()
+            else:
+                # use the text file specified 
+                transcriptFile = open(args.transcript, "r")
+                # read the transcript file
+                transcript = transcriptFile.read()
+                logger.info("Using transcript file: " + args.transcript)
+
+        # Summary
+        if firstProcessStep <= processStep.Summarize:
+
+            """ Skip summarization for now
+            if args.summary == 0:
+                # summarize the transcript
+                summary = getSummary(transcript)
+
+                if args.savefiles:
+                    f = open("history/" + timestr + "-summary" + ".txt", "w")
+                    f.write(summary)
+                    f.close()
+
+            else:
+                # use the text file specified by the transcript argument
+                summaryFile = open(summaryArg, "r")
+                # read the summary file
+                summary = summaryFile.read()
+                logger.info("Using summary file: " + summaryArg)
+            """
+
+        # Keywords    
+        if firstProcessStep <= processStep.Keywords:
+
+            if args.keywords == 0:
+                # extract the keywords from the summary
+                keywords = getAbstractForImageGen(transcript) 
+
+                if args.savefiles:
+                    f = open("history/" + timestr + "-keywords" + ".txt", "w")
+                    f.write(keywords)
+                    f.close()
+
+            else:
+                # use the extract file specified by the extract argument
+                summaryFile = open(args.keywords, "r")
+                # read the summary file
+                keywords = summaryFile.read()
+                logger.info("Using abstract file: " + args.keywords)
+
+        # Image
+        if firstProcessStep <= processStep.Image:
+
+            if args.image == 0:
+
+                # use the keywords to generate images
+                imageURL = getImageURL(keywords)    
+
+                # save the images from a urls into imgObjects[]
+                imgObjects = []
+                for numURL in range(len(imageURL)):
+
+                    fileName = "history/" + "image" + str(numURL) + ".png"
+                    urllib.request.urlretrieve(imageURL[numURL], fileName)
+
+                    img = Image.open(fileName)
+
+                    imgObjects.append(img)
+
+                # combine the images into one image
+                #widths, heights = zip(*(i.size for i in imgObjects))
+                total_width = 512*2
+                max_height = 512*2 + 50
+                new_im = Image.new('RGB', (total_width, max_height))
+                locations = [(0,0), (512,0), (0,512), (512,512)]
+                count = -1
+                for loc in locations:
+                    count += 1
+                    new_im.paste(imgObjects[count], loc)
+
+                # add text at the bottom
+                draw = ImageDraw.Draw(new_im)
+                draw.rectangle(((0, new_im.height - 50), (new_im.width, new_im.height)), fill="black")
+                font = ImageFont.truetype("arial.ttf", 18)
+                # decide if text will exceed the width of the image
+                #textWidth, textHeight = font.getsize(text)
+                draw.text((10, new_im.height - 30), keywords, (255,255,255), font=font)
+
+                # save the combined image
+                newFileName = "history/" + timestr + "-image" + ".png"
+                new_im.save(newFileName)
+
+                #if args.savefiles and args.image == 0:
+                #os.rename("image.png", timestr + "-image" + ".png")
+                #os.rename('combined.png', timestr + "-image" + ".png")
+
+                imageURL = "file://" + os.getcwd() + "/" + newFileName
+                logger.debug("imageURL: " + imageURL)
+            
+            else:
+                imageURL = [args.image ]
+                logger.info("Using image file: " + args.image )
+            
+        # Display
+        logger.info("Displaying image...")
+        webbrowser.open(imageURL)
+
+        #delay
+        print("delaying %d seconds...", loopDelay)
+        time.sleep(loopDelay)
 
 # exit the program
+print("\r\n")
 exit()
 
 
