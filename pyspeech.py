@@ -148,7 +148,7 @@ def getSummary(textInput):
         model="gpt-3.5-turbo",
         messages=[
             {"role": "user", "content" : 
-            f"Please summarize the following text:\n{textInput}" }
+            "Please summarize the following text:\ " + textInput }
         ]               
     )
     loggerTrace.debug("responseSummary: " + str(responseSummary))
@@ -217,7 +217,7 @@ def getImageURL(phrase):
     random.shuffle(imageModifiersMedium)
     prompt = prompt + imageModifiersArtist[0] + imageModifiersMedium[0]
 
-    prompt = f"{prompt} for the following concept: {phrase}"
+    prompt = prompt + " for the following concept: " + phrase
 
     logger.info("Generating image...")
     logger.info("image prompt: " + prompt)
@@ -495,6 +495,8 @@ while not done:
         #delay
         print("delaying %d seconds...", loopDelay)
         time.sleep(loopDelay)
+
+        firstProcessStep = processStep.NoneSpecified
 
 # exit the program
 print("\r\n")
