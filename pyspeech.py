@@ -64,6 +64,7 @@ if g_isMacOS:
 else:
     import pyaudio
     import wave
+    from ctypes import *
 
 
 # Set the duration of each recording in seconds
@@ -148,7 +149,23 @@ def recordAudioFromMicrophone():
         soundfile.write('test1.wav',recording, 44100)
         """
 
-        #pyaudio.set_input_device(2)
+        ERROR_HANDLER_FUNC = CFUNCTYPE(None, c_char_p, c_int, c_char_p, c_int, c_char_p)
+        def py_error_handler(filename, line, function, err, fmt):
+            print ('messages are yummy')
+        c_error_handler = ERROR_HANDLER_FUNC(py_error_handler)
+
+        asound = cdll.LoadLibrary('libasound.so')
+        # Set error handler
+        asound.snd_lib_error_set_handler(c_error_handler)
+        # Initialize PyAudio
+        p = pyaudio.PyAudio()
+        p.terminate()
+
+        print ('-'*40)
+        # Reset to default error handler
+        asound.snd_lib_error_set_handler(None)
+        # Re-initialize
+
         pa = pyaudio.PyAudio()
         stream = pa.open(
             format=pyaudio.paInt16,
