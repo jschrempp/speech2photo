@@ -47,7 +47,7 @@ import shutil
 import re
 import os
 import openai
-import numpy
+#import numpy
 from enum import IntEnum
 from PIL import Image, ImageDraw, ImageFont
 
