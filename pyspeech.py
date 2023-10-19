@@ -149,25 +149,20 @@ def recordAudioFromMicrophone():
         soundfile.write('test1.wav',recording, 44100)
         """
 
-        print("here we go")
+        # all this crap because the ALSA library can't police itself
         ERROR_HANDLER_FUNC = CFUNCTYPE(None, c_char_p, c_int, c_char_p, c_int, c_char_p)
         def py_error_handler(filename, line, function, err, fmt):
             pass #nothing to see here
         c_error_handler = ERROR_HANDLER_FUNC(py_error_handler)
-
         asound = cdll.LoadLibrary('libasound.so')
         # Set error handler
         asound.snd_lib_error_set_handler(c_error_handler)
         # Initialize PyAudio
-        p = pyaudio.PyAudio()
-        p.terminate()
-
-        print ('-'*40)
+        pa = pyaudio.PyAudio()
         # Reset to default error handler
         asound.snd_lib_error_set_handler(None)
-        # Re-initialize
+        # now on with the show, sheesh
 
-        pa = pyaudio.PyAudio()
         stream = pa.open(
             format=pyaudio.paInt16,
             channels=1,
