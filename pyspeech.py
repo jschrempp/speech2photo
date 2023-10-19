@@ -48,6 +48,10 @@ import shutil
 import re
 import os
 import openai
+import numpy
+import pyaudio
+import wave
+
 from enum import IntEnum
 from PIL import Image, ImageDraw, ImageFont
 
@@ -94,7 +98,7 @@ def recordAudioFromMicrophone():
 
     # print the devices
     # print(sd.query_devices())  # in case you have trouble with the devices
-
+    """
     # Set the sample rate and number of channels for the recording
     sample_rate = int(sounddevice.query_devices(1)['default_samplerate'])
     channels = 1
@@ -102,7 +106,7 @@ def recordAudioFromMicrophone():
     logger.debug('sample_rate: %d; channels: %d', sample_rate, channels)
 
     logger.info("Recording %d seconds...", duration)
-    os.system('say "Recording."')
+     os.system('say "Recording."')
     # Record audio from the default microphone
     recording = sounddevice.rec(int(duration * sample_rate), samplerate=sample_rate, channels=channels)
 
@@ -114,7 +118,52 @@ def recordAudioFromMicrophone():
 
     soundFileName = 'recording.wav'
     os.system('say "Thank you. I am now analyzing."')
+    """
 
+    # RPi
+    """
+    recording = sounddevice.Stream(channels=1, samplerate=44100)
+    recording.start()
+    time.sleep(15)
+    recording.stop()
+    soundfile.write('test1.wav',recording, 44100)
+    """
+
+    #pyaudio.set_input_device(2)
+    pa = pyaudio.PyAudio()
+    stream = pa.open(
+         format=pyaudio.paInt16,
+         channels=1,
+         rate=44100,
+         input=True,
+         frames_per_buffer=1024
+         ) #,input_device_index=2)
+
+    wf = wave.open("test3.wav","wb")
+    wf.setnchannels(1)
+    wf.setsampwidth(pa.get_sample_size(pyaudio.paInt16))
+    wf.setframerate(44100)
+
+    print("entering recording loop\n\n\n")
+    # Write the audio data to the file
+    for i in range(0, int(44100/1024*10)):
+
+        # Get the audio data from the microphone
+        data = stream.read(1024)
+
+        # Write the audio data to the file
+        wf.writeframes(data)
+
+        # Check if the user wants to stop recording
+        #if input("Do you want to stop recording? (y/n)") == "y":
+        #   break
+
+    # Close the microphone and the wave file
+    stream.close()
+    wf.close()
+    print("end of test")
+
+    exit()
     return soundFileName
 
 # ----------------------
@@ -148,7 +197,7 @@ def getSummary(textInput):
         model="gpt-3.5-turbo",
         messages=[
             {"role": "user", "content" : 
-            "Please summarize the following text:\ " + textInput }
+            f"Please summarize the following text:\n{textInput}" }
         ]               
     )
     loggerTrace.debug("responseSummary: " + str(responseSummary))
@@ -217,7 +266,7 @@ def getImageURL(phrase):
     random.shuffle(imageModifiersMedium)
     prompt = prompt + imageModifiersArtist[0] + imageModifiersMedium[0]
 
-    prompt = prompt + " for the following concept: " + phrase
+    prompt = f"{prompt} for the following concept: {phrase}"
 
     logger.info("Generating image...")
     logger.info("image prompt: " + prompt)
@@ -495,8 +544,6 @@ while not done:
         #delay
         print("delaying %d seconds...", loopDelay)
         time.sleep(loopDelay)
-
-        firstProcessStep = processStep.NoneSpecified
 
 # exit the program
 print("\r\n")
