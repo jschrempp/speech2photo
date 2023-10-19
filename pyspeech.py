@@ -567,7 +567,7 @@ while not done:
         webbrowser.open(imageURL)
 
         #delay
-        print("delaying %d seconds...", loopDelay)
+        print("delaying " + loopDelay + " seconds...")
         time.sleep(loopDelay)
 
 # exit the program
