@@ -33,6 +33,24 @@ well worth it.
 Based on the WhisperFrame project idea on Hackaday.
 https://hackaday.com/2023/09/22/whisperframe-depicts-the-art-of-conversation/
 
+Specific to Raspberry Pi:
+    1. set up a virtual environment and activate it (to deactive use "deactivate")
+    python3 -m venv .venv
+    source .venv/bin/activate
+    python3 -m pip install -r requirements.txt
+
+    
+    2. install the following packages
+    sudo apt-get install libasound2-dev
+    sudo apt-get install portaudio19-dev
+    sudo apt-get install libatlas-base-dev
+    sudo apt-get install libopenblas-dev
+
+    3. install the following python packages    
+    pip install openai
+    pip install pillow
+    pip install pyaudio
+
 Author: Jim Schrempp 2023 
 """
 
