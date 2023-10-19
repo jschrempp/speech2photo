@@ -36,9 +36,8 @@ https://hackaday.com/2023/09/22/whisperframe-depicts-the-art-of-conversation/
 Author: Jim Schrempp 2023 
 """
 
-# import libraries
-import sounddevice
-import soundfile
+# import common libraries
+import platform
 import argparse
 import logging
 import webbrowser
@@ -49,11 +48,23 @@ import re
 import os
 import openai
 import numpy
-import pyaudio
-import wave
-
 from enum import IntEnum
 from PIL import Image, ImageDraw, ImageFont
+
+# import platform specific libraries
+g_isMacOS = False
+if (platform.system() == "Darwin"):
+    g_isMacOS = True
+else:
+    print ("Not MacOS")
+
+if g_isMacOS:
+    import sounddevice
+    import soundfile
+else:
+    import pyaudio
+    import wave
+
 
 # Set the duration of each recording in seconds
 duration = 60
@@ -90,80 +101,81 @@ loggerTrace = logging.getLogger("Prompts")
 # record duration seconds of audio from the default microphone to a file and return the sound file name
 #
 def recordAudioFromMicrophone():
-    # delete file recording.wav if it exists
-    try:
-        os.remove("recording.wav")
-    except:
-        pass # do nothing   
-
-    # print the devices
-    # print(sd.query_devices())  # in case you have trouble with the devices
-    """
-    # Set the sample rate and number of channels for the recording
-    sample_rate = int(sounddevice.query_devices(1)['default_samplerate'])
-    channels = 1
-
-    logger.debug('sample_rate: %d; channels: %d', sample_rate, channels)
-
-    logger.info("Recording %d seconds...", duration)
-     os.system('say "Recording."')
-    # Record audio from the default microphone
-    recording = sounddevice.rec(int(duration * sample_rate), samplerate=sample_rate, channels=channels)
-
-    # Wait for the recording to finish
-    sounddevice.wait()
-
-    # Save the recording to a WAV file
-    soundfile.write('recording.wav', recording, sample_rate)
 
     soundFileName = 'recording.wav'
-    os.system('say "Thank you. I am now analyzing."')
-    """
+    
+    # delete file recording.wav if it exists
+    try:
+        os.remove(soundFileName)
+    except:
+        pass # do nothing   
+    
+    if g_isMacOS:
+        # print the devices
+        # print(sd.query_devices())  # in case you have trouble with the devices
 
-    # RPi
-    """
-    recording = sounddevice.Stream(channels=1, samplerate=44100)
-    recording.start()
-    time.sleep(15)
-    recording.stop()
-    soundfile.write('test1.wav',recording, 44100)
-    """
+        # Set the sample rate and number of channels for the recording
+        sample_rate = int(sounddevice.query_devices(1)['default_samplerate'])
+        channels = 1
 
-    #pyaudio.set_input_device(2)
-    pa = pyaudio.PyAudio()
-    stream = pa.open(
-         format=pyaudio.paInt16,
-         channels=1,
-         rate=44100,
-         input=True,
-         frames_per_buffer=1024
-         ) #,input_device_index=2)
+        logger.debug('sample_rate: %d; channels: %d', sample_rate, channels)
 
-    wf = wave.open("test3.wav","wb")
-    wf.setnchannels(1)
-    wf.setsampwidth(pa.get_sample_size(pyaudio.paInt16))
-    wf.setframerate(44100)
+        logger.info("Recording %d seconds...", duration)
+        os.system('say "Recording."')
+        # Record audio from the default microphone
+        recording = sounddevice.rec(
+            int(duration * sample_rate), 
+            samplerate=sample_rate, 
+            channels=channels
+            )
 
-    print("entering recording loop\n\n\n")
-    # Write the audio data to the file
-    for i in range(0, int(44100/1024*10)):
+        # Wait for the recording to finish
+        sounddevice.wait()
 
-        # Get the audio data from the microphone
-        data = stream.read(1024)
+        # Save the recording to a WAV file
+        soundfile.write(soundFileName, recording, sample_rate)
+
+        os.system('say "Thank you. I am now analyzing."')
+
+    else:
+
+        # RPi
+        """
+        recording = sounddevice.Stream(channels=1, samplerate=44100)
+        recording.start()
+        time.sleep(15)
+        recording.stop()
+        soundfile.write('test1.wav',recording, 44100)
+        """
+
+        #pyaudio.set_input_device(2)
+        pa = pyaudio.PyAudio()
+        stream = pa.open(
+            format=pyaudio.paInt16,
+            channels=1,
+            rate=44100,
+            input=True,
+            frames_per_buffer=1024
+            ) #,input_device_index=2)
+
+        wf = wave.open(soundFileName,"wb")
+        wf.setnchannels(1)
+        wf.setsampwidth(pa.get_sample_size(pyaudio.paInt16))
+        wf.setframerate(44100)
 
         # Write the audio data to the file
-        wf.writeframes(data)
+        for i in range(0, int(44100/1024*10)):
 
-        # Check if the user wants to stop recording
-        #if input("Do you want to stop recording? (y/n)") == "y":
-        #   break
+            # Get the audio data from the microphone
+            data = stream.read(1024)
 
-    # Close the microphone and the wave file
-    stream.close()
-    wf.close()
-    print("end of test")
+            # Write the audio data to the file
+            wf.writeframes(data)
 
-    exit()
+        # Close the microphone and the wave file
+        stream.close()
+        wf.close()
+
     return soundFileName
 
 # ----------------------
