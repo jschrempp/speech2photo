@@ -149,6 +149,7 @@ def recordAudioFromMicrophone():
         soundfile.write('test1.wav',recording, 44100)
         """
 
+        print("here we go")
         ERROR_HANDLER_FUNC = CFUNCTYPE(None, c_char_p, c_int, c_char_p, c_int, c_char_p)
         def py_error_handler(filename, line, function, err, fmt):
             print ('messages are yummy')
