@@ -21,18 +21,17 @@ GPIO.setup(10, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # Set pin 10 to be an input 
 while True: # Run forever
     if GPIO.input(10) == GPIO.HIGH:
         print("Button was pushed!")
-        time.sleep(0.1)
 
-# Blink the LED 5 times
-for i in range(25):
-    # Turn the LED on
-    GPIO.output(8, GPIO.HIGH)
-    # Wait for 1 second
-    time.sleep(1)
-    # Turn the LED off
-    GPIO.output(8, GPIO.LOW)
-    # Wait for 1 second
-    time.sleep(1)
+        # Blink the LED 5 times
+        for i in range(25):
+            # Turn the LED on
+            GPIO.output(8, GPIO.HIGH)
+            # Wait for 1 second
+            time.sleep(1)
+            # Turn the LED off
+            GPIO.output(8, GPIO.LOW)
+            # Wait for 1 second
+            time.sleep(1)
 
 # Clean up the GPIO pins
 GPIO.cleanup()
