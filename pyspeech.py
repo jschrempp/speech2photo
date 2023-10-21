@@ -102,6 +102,9 @@ else:
     GPIO.setup(8, GPIO.OUT, initial=GPIO.LOW)
 
     # Define a function to blink the LED
+    # This function is run on a thread
+    # Communicate by putting a tuple of (onTime, offTime) in the qBlinkControl queue
+    #
     def blink_led(q):
         print("Starting LED thread") # why do I need to have this for the thread to work?
         # initialize the blink time
@@ -136,10 +139,10 @@ else:
             # Wait for blink_time seconds
             time.sleep(offTime)
 
-    # Create a new thread to blink the LED
-    qBlinkControl = Queue()
-    led_thread1 = threading.Thread(target=blink_led, args=(qBlinkControl,),daemon=True)
-    led_thread1.start()
+# Create a new thread to blink the LED
+qBlinkControl = Queue()
+led_thread1 = threading.Thread(target=blink_led, args=(qBlinkControl,),daemon=True)
+led_thread1.start()
 
     # --------- end of Raspberry Pi specific setup ----------------------------
 
@@ -668,7 +671,7 @@ while not done:
         # Display
 
         qBlinkControl.put(constBlinkSlow)
-        
+
         logger.info("Displaying image...")
         webbrowser.open(imageURL)
 
