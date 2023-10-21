@@ -142,6 +142,12 @@ if not g_isMacOS:
 
     constBlinkFast = (0.1, 0.1)
     constBlinkSlow = (0.5, 0.5)
+    constBlinkAudioCapture = (0.05, 0.05)
+    constBlink1 = (0.5, 0.2)
+    constBlink2 = (0.4, 0.2)
+    constBlink3 = (0.3, 0.2)
+    constBlink4 = (0.2, 0.2)
+
     constBlinkStop = (-1, -1)
 
     # Define a function to blink the LED
@@ -535,7 +541,7 @@ while not done:
         # Audio
         if firstProcessStep <= processStep.Audio:
 
-            qBlinkControl.put(constBlinkFast)
+            qBlinkControl.put(constBlinkAudioCapture)
 
             if args.wav == 0:
                 # record audio from the default microphone
@@ -556,7 +562,7 @@ while not done:
         # Transcribe
         if firstProcessStep <= processStep.Transcribe:
         
-            qBlinkControl.put(constBlinkSlow)
+            qBlinkControl.put(constBlink1)
 
             if args.transcript == 0:
                 # transcribe the recording
@@ -579,7 +585,7 @@ while not done:
         if firstProcessStep <= processStep.Summarize:
 
             """ Skip summarization for now
-            qBlinkControl.put(constBlinkSlow)
+            qBlinkControl.put(constBlink2)
 
             if args.summary == 0:
                 # summarize the transcript
@@ -604,7 +610,7 @@ while not done:
         # Keywords    
         if firstProcessStep <= processStep.Keywords:
 
-            qBlinkControl.put(constBlinkSlow)
+            qBlinkControl.put(constBlink3)
 
             if args.keywords == 0:
                 # extract the keywords from the summary
@@ -627,7 +633,7 @@ while not done:
         # Image
         if firstProcessStep <= processStep.Image:
 
-            qBlinkControl.put(constBlinkSlow)
+            qBlinkControl.put(constBlink4)
 
             if args.image == 0:
 
