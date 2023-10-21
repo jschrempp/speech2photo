@@ -18,9 +18,12 @@ def blink_led(q):
 
     while True:
         # Get the blink time from the queue
-        blink_time = q.get()
+        blink_time = q.get_nowait()
 
-        if blink_time[0] == -1:
+        # Check if the blink time is None
+        if blink_time is None:
+            print("None blink time")
+        elif blink_time[0] == -1:
             # stop blinking
             print("Blink time -1: ", blink_time)
             GPIO.output(8, GPIO.LOW)
