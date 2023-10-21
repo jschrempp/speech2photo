@@ -43,10 +43,10 @@ led_thread1 = threading.Thread(target=blink_led, args=(q,),daemon=True)
 led_thread1.start()
 
 # Continue running the main thread
-blink_time = [0.2, 2]
+blink_times = [0.2, 2]
 while True:
-    blink_time[0] += 0.2
-    q.put((blink_time, 1))
+    blink_times[0] += 0.2
+    q.put(blink_times)
     # Wait for 10 seconds
     time.sleep(5)
     # Generate a random blink time between 0.5 and 2 seconds
