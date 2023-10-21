@@ -23,9 +23,9 @@ def blink_led(q):
         except:
             blink_time = None
 
-        # Check if the blink time is None
         if blink_time is None:
-            print("None blink time")
+            # no change
+            print("No change in blink time")
         elif blink_time[0] == -1:
             # stop blinking
             print("Blink time -1: ", blink_time)
