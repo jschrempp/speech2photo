@@ -1,13 +1,6 @@
-"""
-Test the GPIO pins on the Raspberry Pi by blinking an LED
-
-
-sudo apt-get install python3-rpi.gpio
-pip install rpi.gpio
-
-"""
-
+# BEGIN: qv5z7j8d6p3m
 import RPi.GPIO as GPIO
+import threading
 import time
 
 # Set the pin numbering mode to BCM
@@ -16,22 +9,31 @@ GPIO.setmode(GPIO.BOARD)
 # Set up pin 8 as an output
 GPIO.setup(8, GPIO.OUT, initial=GPIO.LOW)
 
-GPIO.setup(10, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # Set pin 10 to be an input pin and set initial value to be pulled low (off)
+# Define a function to blink the LED
+def blink_led(blink_time):
+    while True:
+        # Turn the LED on
+        GPIO.output(8, GPIO.HIGH)
+        # Wait for blink_time seconds
+        time.sleep(blink_time)
+        # Turn the LED off
+        GPIO.output(8, GPIO.LOW)
+        # Wait for blink_time seconds
+        time.sleep(blink_time)
 
-while True: # Run forever
-    if GPIO.input(10) == GPIO.HIGH:
-        print("Button was pushed!")
+# Create a new thread to blink the LED
+blink_time = .2
+led_thread = threading.Thread(target=blink_led, args=(blink_time,),daemon=True)
+led_thread.start()
 
-        # Blink the LED 5 times
-        for i in range(25):
-            # Turn the LED on
-            GPIO.output(8, GPIO.HIGH)
-            # Wait for 1 second
-            time.sleep(1)
-            # Turn the LED off
-            GPIO.output(8, GPIO.LOW)
-            # Wait for 1 second
-            time.sleep(1)
+# Continue running the main thread
+while True:
+    # Wait for 60 seconds
+    time.sleep(10)
+    # Generate a random blink time between 0.5 and 2 seconds
+    blink_time = 1
+    # Restart the LED thread with the new blink time
+    led_thread = threading.Thread(target=blink_led, args=(blink_time,),daemon=True)
+    led_thread.start()
 
-# Clean up the GPIO pins
-GPIO.cleanup()
+# END: qv5z7j8d6p3m
