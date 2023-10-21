@@ -556,7 +556,7 @@ while not done:
         if firstProcessStep <= processStep.Transcribe:
         
             qBlinkControl.put(constBlinkSlow)
-            time.sleep(0.1)
+            time.sleep(5)
 
             if args.transcript == 0:
                 # transcribe the recording
