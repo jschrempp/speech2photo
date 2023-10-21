@@ -101,6 +101,10 @@ else:
     # Set up pin 8 as an output
     GPIO.setup(8, GPIO.OUT, initial=GPIO.LOW)
 
+constBlinkFast = (0.1, 0.1)
+constBlinkSlow = (0.5, 0.5)
+constBlinkStop = (-1, -1)
+
 # Define a function to blink the LED
 # This function is run on a thread
 # Communicate by putting a tuple of (onTime, offTime) in the qBlinkControl queue
@@ -141,9 +145,11 @@ def blink_led(q):
         time.sleep(offTime)
 
 # Create a new thread to blink the LED
+logger.info("Creating LED thread")
 qBlinkControl = Queue()
 led_thread1 = threading.Thread(target=blink_led, args=(qBlinkControl,),daemon=True)
 led_thread1.start()
+qBlinkControl(constBlinkStop)
 
     # --------- end of Raspberry Pi specific setup ----------------------------
 
@@ -177,9 +183,7 @@ imageModifiersMedium = [
                     " as a photograph",
                     ]
 
-constBlinkFast = (0.1, 0.1)
-constBlinkSlow = (0.5, 0.5)
-constBlinkStop = (-1, -1)
+
 
 logger = logging.getLogger(__name__)
 loggerTrace = logging.getLogger("Prompts") 
