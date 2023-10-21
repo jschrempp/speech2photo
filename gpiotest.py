@@ -53,7 +53,7 @@ led_thread1 = threading.Thread(target=blink_led, args=(q,),daemon=True)
 led_thread1.start()
 
 # Continue running the main thread
-blink_times = [0.1, 2]
+blink_times = [0.1, 0.1]
 while True:
     blink_times[0] += 0.1
     q.put(blink_times)
