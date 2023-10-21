@@ -154,7 +154,7 @@ logger.info("Creating LED thread")
 qBlinkControl = Queue()
 led_thread1 = threading.Thread(target=blink_led, args=(qBlinkControl,),daemon=True)
 led_thread1.start()
-qBlinkControl(constBlinkStop)
+qBlinkControl.put(constBlinkStop)
 
     # --------- end of Raspberry Pi specific setup ----------------------------
 
