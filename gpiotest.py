@@ -23,7 +23,7 @@ def blink_led(blink_time):
         time.sleep(blink_time)
 
 # Create a new thread to blink the LED
-blink_time = .1
+blink_time = .7
 led_thread = threading.Thread(target=blink_led, args=(blink_time,),daemon=True)
 led_thread.start()
 
@@ -32,7 +32,7 @@ while True:
     # Wait for 60 seconds
     time.sleep(10)
     # Generate a random blink time between 0.5 and 2 seconds
-    blink_time = .7
+    blink_time = .1
     # Restart the LED thread with the new blink time
     led_thread = threading.Thread(target=blink_led, args=(blink_time,),daemon=True)
     led_thread.start()
