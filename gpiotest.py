@@ -11,6 +11,7 @@ GPIO.setup(8, GPIO.OUT, initial=GPIO.LOW)
 
 # Define a function to blink the LED
 def blink_led(blink_time):
+    print("Blinking LED with time: " + str(blink_time))
     while True:
         # Turn the LED on
         GPIO.output(8, GPIO.HIGH)
