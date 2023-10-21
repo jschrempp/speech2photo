@@ -98,17 +98,51 @@ else:
     import threading
     from queue import Queue
 
-constBlinkFast = (0.1, 0.1)
-constBlinkSlow = [0.5, 0.5]
-constBlinkStop = (-1, -1)
+
+
+
+# Set the duration of each recording in seconds
+duration = 60
+
+# Set the number of times to loop when in auto mode
+loopsMax = 10
+
+# Prompt for abstraction
+promptForAbstraction = "What is the most interesting concept in the following text \
+    expressing the answer as a noun phrase, but not in a full sentence "
+
+# image modifiers
+imageModifiersArtist = [
+                    " in the style of Picasso",
+                    " in the style of Van Gogh",
+                    " in the style of Monet",
+                    " in the style of Dali",
+                    " in the style of Escher",
+                    " in the style of Rembrandt",
+                    ]
+imageModifiersMedium = [
+                    " as a painting",
+                    " as a watercolor",
+                    " as a sketch",
+                    " as a drawing",
+                    " as a sculpture",
+                    " as a photograph",
+                    ]
+
+
 
 if not g_isMacOS:
+    # --------- Raspberry Pi specific code -----------------------------------------
     logger.info("Setting up GPIO pins")
     # Set the pin numbering mode to BCM
     GPIO.setmode(GPIO.BOARD)
 
     # Set up pin 8 as an output
     GPIO.setup(8, GPIO.OUT, initial=GPIO.LOW)
+
+    constBlinkFast = (0.1, 0.1)
+    constBlinkSlow = (0.5, 0.5)
+    constBlinkStop = (-1, -1)
 
     # Define a function to blink the LED
     # This function is run on a thread
@@ -156,41 +190,9 @@ if not g_isMacOS:
     qBlinkControl = Queue()
     led_thread1 = threading.Thread(target=blink_led, args=(qBlinkControl,),daemon=True)
     led_thread1.start()
-    qBlinkControl.put(constBlinkSlow)
 
 
-    # --------- end of Raspberry Pi specific setup ----------------------------
-
-
-
-# Set the duration of each recording in seconds
-duration = 60
-
-# Set the number of times to loop when in auto mode
-loopsMax = 10
-
-# Prompt for abstraction
-promptForAbstraction = "What is the most interesting concept in the following text \
-    expressing the answer as a noun phrase, but not in a full sentence "
-
-# image modifiers
-imageModifiersArtist = [
-                    " in the style of Picasso",
-                    " in the style of Van Gogh",
-                    " in the style of Monet",
-                    " in the style of Dali",
-                    " in the style of Escher",
-                    " in the style of Rembrandt",
-                    ]
-imageModifiersMedium = [
-                    " as a painting",
-                    " as a watercolor",
-                    " as a sketch",
-                    " as a drawing",
-                    " as a sculpture",
-                    " as a photograph",
-                    ]
-
+    # --------- end of Raspberry Pi specific code ----------------------------
 
 
                                 
@@ -689,7 +691,7 @@ while not done:
         qBlinkControl.put(constBlinkStop)
 
         #delay
-        print("delaying " + loopDelay + " seconds...")
+        print("delaying " + str(loopDelay) + " seconds...")
         time.sleep(loopDelay)
 
 
