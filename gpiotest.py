@@ -26,6 +26,7 @@ def blink_led(q):
         if blink_time is None:
             # no change
             # print("No change in blink time")
+            pass
         elif blink_time[0] == -1:
             # stop blinking
             GPIO.output(8, GPIO.LOW)
