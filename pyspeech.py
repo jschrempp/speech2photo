@@ -107,6 +107,7 @@ else:
     #
     def blink_led(q):
         print("Starting LED thread") # why do I need to have this for the thread to work?
+        logger.info("Starting LED thread")
         # initialize the blink time
         onTime = 0
         offTime = 1000  # a long time
