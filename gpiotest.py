@@ -52,7 +52,6 @@ led_thread1.start()
 blink_times = [0.1, 0.1]
 while True:
     blink_times[0] += 0.1
-    blink_times[1] += 0.05
     q.put(blink_times)
     # Wait for 10 seconds
     time.sleep(5)
