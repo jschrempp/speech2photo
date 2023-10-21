@@ -85,10 +85,64 @@ else:
 if g_isMacOS:
     import sounddevice
     import soundfile
+
 else:
+    # --------- set for Raspberry Pi -----------------------------------------
     import pyaudio
     import wave
     from ctypes import *
+    import RPi.GPIO as GPIO
+    import threading
+    from queue import Queue
+
+    # Set the pin numbering mode to BCM
+    GPIO.setmode(GPIO.BOARD)
+
+    # Set up pin 8 as an output
+    GPIO.setup(8, GPIO.OUT, initial=GPIO.LOW)
+
+    # Define a function to blink the LED
+    def blink_led(q):
+        print("Starting LED thread") # why do I need to have this for the thread to work?
+        # initialize the blink time
+        onTime = 0
+        offTime = 1000  # a long time
+
+        while True:
+            # Get the blink time from the queue
+            try:
+                blink_time = q.get_nowait()
+            except:
+                blink_time = None
+
+            if blink_time is None:
+                # no change
+                pass
+            elif blink_time[0] == -1:
+                # stop blinking
+                GPIO.output(8, GPIO.LOW)
+                onTime = 0
+                offTime = 1000
+            else:
+                onTime = blink_time[0]
+                offTime = blink_time[1]
+
+            # Turn the LED on
+            GPIO.output(8, GPIO.HIGH)
+            # Wait for blink_time seconds
+            time.sleep(onTime)
+            # Turn the LED off
+            GPIO.output(8, GPIO.LOW)
+            # Wait for blink_time seconds
+            time.sleep(offTime)
+
+    # Create a new thread to blink the LED
+    qBlinkControl = Queue()
+    led_thread1 = threading.Thread(target=blink_led, args=(qBlinkControl,),daemon=True)
+    led_thread1.start()
+
+    # --------- end of Raspberry Pi specific setup ----------------------------
+
 
 
 # Set the duration of each recording in seconds
@@ -118,6 +172,10 @@ imageModifiersMedium = [
                     " as a sculpture",
                     " as a photograph",
                     ]
+
+constBlinkFast = (0.1, 0.1)
+constBlinkSlow = (0.5, 0.5)
+constBlinkStop = (-1, -1)
 
 logger = logging.getLogger(__name__)
 loggerTrace = logging.getLogger("Prompts") 
@@ -461,6 +519,8 @@ while not done:
         # Audio
         if firstProcessStep <= processStep.Audio:
 
+            qBlinkControl.put(constBlinkFast)
+
             if args.wav == 0:
                 # record audio from the default microphone
                 soundFileName = recordAudioFromMicrophone()
@@ -474,10 +534,14 @@ while not done:
                 # use the file specified by the wav argument
                 soundFileName = args.wav
                 logger.info("Using audio file: " + args.wav)
+
+            qBlinkControl.put(constBlinkStop)
     
         # Transcribe
         if firstProcessStep <= processStep.Transcribe:
         
+            qBlinkControl.put(constBlinkSlow)
+
             if args.transcript == 0:
                 # transcribe the recording
                 transcript = getTranscript(soundFileName)
@@ -493,10 +557,14 @@ while not done:
                 transcript = transcriptFile.read()
                 logger.info("Using transcript file: " + args.transcript)
 
+            qBlinkControl.put(constBlinkStop)
+
         # Summary
         if firstProcessStep <= processStep.Summarize:
 
             """ Skip summarization for now
+            qBlinkControl.put(constBlinkSlow)
+
             if args.summary == 0:
                 # summarize the transcript
                 summary = getSummary(transcript)
@@ -512,10 +580,15 @@ while not done:
                 # read the summary file
                 summary = summaryFile.read()
                 logger.info("Using summary file: " + summaryArg)
+            
+            qBlinkControl.put(constBlinkStop)
             """
+
 
         # Keywords    
         if firstProcessStep <= processStep.Keywords:
+
+            qBlinkControl.put(constBlinkSlow)
 
             if args.keywords == 0:
                 # extract the keywords from the summary
@@ -533,8 +606,12 @@ while not done:
                 keywords = summaryFile.read()
                 logger.info("Using abstract file: " + args.keywords)
 
+            qBlinkControl.put(constBlinkStop)
+
         # Image
         if firstProcessStep <= processStep.Image:
+
+            qBlinkControl.put(constBlinkSlow)
 
             if args.image == 0:
 
@@ -585,14 +662,31 @@ while not done:
             else:
                 imageURL = [args.image ]
                 logger.info("Using image file: " + args.image )
+
+            qBlinkControl.put(constBlinkStop)
             
         # Display
+
+        qBlinkControl.put(constBlinkSlow)
+        
         logger.info("Displaying image...")
         webbrowser.open(imageURL)
+
+        qBlinkControl.put(constBlinkStop)
 
         #delay
         print("delaying " + loopDelay + " seconds...")
         time.sleep(loopDelay)
+
+
+# all done
+if not g_isMacOS:
+    # Stop the LED thread
+    q.put(None)
+    led_thread1.join()
+
+    # Clean up the GPIO pins
+    GPIO.cleanup()
 
 # exit the program
 print("\r\n")
