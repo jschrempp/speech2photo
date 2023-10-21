@@ -140,6 +140,7 @@ if not g_isMacOS:
     # Set up pin 8 as an output
     GPIO.setup(8, GPIO.OUT, initial=GPIO.LOW)
 
+    # Define some constants for blinking the LED (onTime, offTime)
     constBlinkFast = (0.1, 0.1)
     constBlinkSlow = (0.5, 0.5)
     constBlinkAudioCapture = (0.05, 0.05)
