@@ -12,6 +12,10 @@ GPIO.setup(8, GPIO.OUT, initial=GPIO.LOW)
 # Define a function to blink the LED
 def blink_led(q):
     print("Blinking LED")
+    # initialize the blink time
+    onTime = 0
+    offTime = 1000  # a long time
+
     while True:
         # Get the blink time from the queue
         blink_time = q.get()
@@ -21,9 +25,8 @@ def blink_led(q):
             break
         else:
             print("Blink time: ", blink_time)
-
-        onTime = int(blink_time[0])
-        offTime = int(blink_time[1])
+            onTime = blink_time[0]
+            offTime = int(blink_time[1])
 
         # Turn the LED on
         GPIO.output(8, GPIO.HIGH)
