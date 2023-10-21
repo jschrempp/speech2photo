@@ -25,7 +25,7 @@ def blink_led(q):
             break
         else:
             print("Blink time: ", blink_time)
-            onTime = blink_time[0]
+            onTime = int(blink_time[0])
             offTime = int(blink_time[1])
 
         # Turn the LED on
