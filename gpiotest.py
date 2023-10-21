@@ -18,7 +18,10 @@ def blink_led(q):
 
     while True:
         # Get the blink time from the queue
-        blink_time = q.get_nowait()
+        try:
+            blink_time = q.get_nowait()
+        except:
+            blink_time = None
 
         # Check if the blink time is None
         if blink_time is None:
