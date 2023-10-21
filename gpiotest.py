@@ -49,7 +49,7 @@ while True:
     blink_times[0] += 0.2
     q.put(blink_times)
     # Wait for 10 seconds
-    time.sleep(5)
+    time.sleep(10)
     # Generate a random blink time between 0.5 and 2 seconds
     #blink_time = 5
     #q.put(blink_time)
