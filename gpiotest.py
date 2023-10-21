@@ -11,7 +11,7 @@ GPIO.setup(8, GPIO.OUT, initial=GPIO.LOW)
 
 # Define a function to blink the LED
 def blink_led(q):
-    print("Starting LED thread")
+    print("Starting LED thread") # why do I need to have this for the thread to work?
     # initialize the blink time
     onTime = 0
     offTime = 1000  # a long time
