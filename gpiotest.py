@@ -11,6 +11,7 @@ GPIO.setup(8, GPIO.OUT, initial=GPIO.LOW)
 
 # Define a function to blink the LED
 def blink_led(q):
+    print("Blinking LED")
     # initialize the blink time
     onTime = 0
     offTime = 1000  # a long time
@@ -24,7 +25,7 @@ def blink_led(q):
 
         if blink_time is None:
             # no change
-            pass
+            print("No change in blink time")
         elif blink_time[0] == -1:
             # stop blinking
             GPIO.output(8, GPIO.LOW)
