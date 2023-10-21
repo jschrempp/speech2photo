@@ -139,6 +139,7 @@ def blink_led(q):
             onTime = 0
             offTime = 1000
         else:
+            logger.info("blink_time: " + str(blink_time))
             onTime = blink_time[0]
             offTime = blink_time[1]
 
