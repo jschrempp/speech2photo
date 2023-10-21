@@ -75,6 +75,9 @@ import openai
 from enum import IntEnum
 from PIL import Image, ImageDraw, ImageFont
 
+logger = logging.getLogger(__name__) # parameter: -d 1
+loggerTrace = logging.getLogger("Prompts") # parameter: -d 2
+
 # import platform specific libraries
 g_isMacOS = False
 if (platform.system() == "Darwin"):
@@ -95,8 +98,7 @@ else:
     import threading
     from queue import Queue
 
-logger = logging.getLogger(__name__)
-loggerTrace = logging.getLogger("Prompts") 
+
 
 if not g_isMacOS:
     logger.info("Setting up GPIO pins")
@@ -116,7 +118,7 @@ constBlinkStop = (-1, -1)
 #
 def blink_led(q):
     print("Starting LED thread") # why do I need to have this for the thread to work?
-    logger.info("Starting LED thread")
+    logger.info("logging, Starting LED thread")
     # initialize the blink time
     onTime = 0
     offTime = 1000  # a long time
@@ -154,7 +156,8 @@ logger.info("Creating LED thread")
 qBlinkControl = Queue()
 led_thread1 = threading.Thread(target=blink_led, args=(qBlinkControl,),daemon=True)
 led_thread1.start()
-qBlinkControl.put(constBlinkStop)
+qBlinkControl.put(constBlinkFast)
+time.sleep(2)
 
     # --------- end of Raspberry Pi specific setup ----------------------------
 
