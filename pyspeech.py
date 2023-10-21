@@ -109,7 +109,7 @@ if not g_isMacOS:
     GPIO.setup(8, GPIO.OUT, initial=GPIO.LOW)
 
 constBlinkFast = (0.1, 0.1)
-constBlinkSlow = (0.5, 0.5)
+constBlinkSlow = [0.5, 0.5]
 constBlinkStop = (-1, -1)
 
 # Define a function to blink the LED
@@ -119,9 +119,10 @@ constBlinkStop = (-1, -1)
 def blink_led(q):
     print("Starting LED thread") # why do I need to have this for the thread to work?
     logger.info("logging, Starting LED thread")
-    # initialize the blink time
-    onTime = 0
-    offTime = 1000  # a long time
+
+    # initialize the LED
+    isBlinking = False
+    GPIO.output(8, GPIO.LOW)
 
     while True:
         # Get the blink time from the queue
@@ -136,21 +137,21 @@ def blink_led(q):
         elif blink_time[0] == -1:
             # stop blinking
             GPIO.output(8, GPIO.LOW)
-            onTime = 0
-            offTime = 1000
+            isBlinking = False
         else:
-            logger.info("blink_time: " + str(blink_time))
             onTime = blink_time[0]
             offTime = blink_time[1]
+            isBlinking = True
 
-        # Turn the LED on
-        GPIO.output(8, GPIO.HIGH)
-        # Wait for blink_time seconds
-        time.sleep(onTime)
-        # Turn the LED off
-        GPIO.output(8, GPIO.LOW)
-        # Wait for blink_time seconds
-        time.sleep(offTime)
+        if isBlinking:
+            # Turn the LED on
+            GPIO.output(8, GPIO.HIGH)
+            # Wait for blink_time seconds
+            time.sleep(onTime)
+            # Turn the LED off
+            GPIO.output(8, GPIO.LOW)
+            # Wait for blink_time seconds
+            time.sleep(offTime)
 
 # Create a new thread to blink the LED
 logger.info("Creating LED thread")
@@ -158,7 +159,7 @@ qBlinkControl = Queue()
 led_thread1 = threading.Thread(target=blink_led, args=(qBlinkControl,),daemon=True)
 led_thread1.start()
 qBlinkControl.put(constBlinkSlow)
-#time.sleep(5)
+
 
     # --------- end of Raspberry Pi specific setup ----------------------------
 
@@ -556,7 +557,6 @@ while not done:
         if firstProcessStep <= processStep.Transcribe:
         
             qBlinkControl.put(constBlinkSlow)
-            time.sleep(5)
 
             if args.transcript == 0:
                 # transcribe the recording
