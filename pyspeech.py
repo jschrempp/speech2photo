@@ -95,6 +95,11 @@ else:
     import threading
     from queue import Queue
 
+logger = logging.getLogger(__name__)
+loggerTrace = logging.getLogger("Prompts") 
+
+if not g_isMacOS:
+    logger.info("Setting up GPIO pins")
     # Set the pin numbering mode to BCM
     GPIO.setmode(GPIO.BOARD)
 
@@ -185,8 +190,6 @@ imageModifiersMedium = [
 
 
 
-logger = logging.getLogger(__name__)
-loggerTrace = logging.getLogger("Prompts") 
                                 
 # ----------------------
 # record duration seconds of audio from the default microphone to a file and return the sound file name
