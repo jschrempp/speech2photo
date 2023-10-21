@@ -21,9 +21,11 @@ def blink_led(q):
         blink_time = q.get()
 
         if blink_time[0] == -1:
+            # stop blinking
             print("Blink time blank: ", blink_time)
             GPIO.output(8, GPIO.LOW)
-            break
+            onTime = 0
+            offTime = 1000
         else:
             print("Blink time: ", blink_time)
             onTime = blink_time[0]
