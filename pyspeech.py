@@ -51,6 +51,12 @@ Specific to Raspberry Pi:
     pip install pillow
     pip install pyaudio
 
+    Note that when run you will see 10 or so lines of errors about sockets and JACKD and whatnot.
+    Don't worry, it is still working. If you know how to fix this, please let me know.
+
+    Also note that errors from the audio subsystem are ignored in recordAudioFromMicrophone(). If 
+    you are having some real audio issue, you might change the error handler to print the errors.
+    
 Author: Jim Schrempp 2023 
 """
 
