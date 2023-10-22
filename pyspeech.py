@@ -723,7 +723,7 @@ while not done:
 # all done
 if not g_isMacOS:
     # Stop the LED thread
-    qBlinkControl.put(constBlinkStop)
+    qBlinkControl.put(constBlinkDie)
     led_thread1.join()
 
     # Clean up the GPIO pins
