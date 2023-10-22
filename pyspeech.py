@@ -100,10 +100,8 @@ else:
     from queue import Queue
 
 
-
-
 # Set the duration of each recording in seconds
-duration = 60
+duration = 10
 
 # Set the number of times to loop when in auto mode
 loopsMax = 10
@@ -130,7 +128,17 @@ imageModifiersMedium = [
                     " as a photograph",
                     ]
 
+# Define  constants for blinking the LED (onTime, offTime)
+constBlinkFast = (0.1, 0.1)
+constBlinkSlow = (0.5, 0.5)
+constBlinkAudioCapture = (0.05, 0.05)
+constBlink1 = (0.5, 0.2)
+constBlink2 = (0.4, 0.2)
+constBlink3 = (0.3, 0.2)
+constBlink4 = (0.2, 0.2)
 
+constBlinkStop = (-1, -1)
+constBlinkDie = (-2, -2)
 
 if not g_isMacOS:
     # --------- Raspberry Pi specific code -----------------------------------------
@@ -140,18 +148,6 @@ if not g_isMacOS:
 
     # Set up pin 8 as an output
     GPIO.setup(8, GPIO.OUT, initial=GPIO.LOW)
-
-    # Define some constants for blinking the LED (onTime, offTime)
-    constBlinkFast = (0.1, 0.1)
-    constBlinkSlow = (0.5, 0.5)
-    constBlinkAudioCapture = (0.05, 0.05)
-    constBlink1 = (0.5, 0.2)
-    constBlink2 = (0.4, 0.2)
-    constBlink3 = (0.3, 0.2)
-    constBlink4 = (0.2, 0.2)
-
-    constBlinkStop = (-1, -1)
-    constBlinkDie = (-2, -2)
 
     # Define a function to blink the LED
     # This function is run on a thread
@@ -207,7 +203,16 @@ if not g_isMacOS:
 
     # --------- end of Raspberry Pi specific code ----------------------------
 
-
+# ----------------------
+# change the blink rate
+#   This routine isolates the RPi specific code
+def changeBlinkRate(blinkRate):
+    if not g_isMacOS:
+        # running on RPi
+        qBlinkControl.put(blinkRate)
+    else:
+        # not running on RPI so do nothing
+        pass
                                 
 # ----------------------
 # record duration seconds of audio from the default microphone to a file and return the sound file name
@@ -445,10 +450,14 @@ logging.basicConfig(level=logging.WARNING, format=' %(asctime)s - %(levelname)s 
 # set the OpenAI API key
 openai.api_key_path = 'creepy photo secret key'
 
-# check for running over SSL
-isOverSSL = False
-if ssl.OPENSSL_VERSION:
-    isOverSSL = True
+# check for running over ssl to a remote machine
+isOverRemoteSSL = False
+if ssl.OPENSSL_VERSION and platform.system() != "Darwin":
+    isOverRemoteSSL = True
+    print("Running over SSL to a remote machine")
+else:
+    print("Not running over SSL to a remote machine")
+
 
 # create a directory if one does not exist
 if not os.path.exists("history"):
@@ -553,7 +562,7 @@ while not done:
         # Audio
         if firstProcessStep <= processStep.Audio:
 
-            qBlinkControl.put(constBlinkAudioCapture)
+            changeBlinkRate(constBlinkAudioCapture)
 
             if args.wav == 0:
                 # record audio from the default microphone
@@ -569,12 +578,12 @@ while not done:
                 soundFileName = args.wav
                 logger.info("Using audio file: " + args.wav)
 
-            qBlinkControl.put(constBlinkStop)
+            changeBlinkRate(constBlinkStop)
     
         # Transcribe
         if firstProcessStep <= processStep.Transcribe:
         
-            qBlinkControl.put(constBlink1)
+            changeBlinkRate(constBlink1)
 
             if args.transcript == 0:
                 # transcribe the recording
@@ -591,13 +600,13 @@ while not done:
                 transcript = transcriptFile.read()
                 logger.info("Using transcript file: " + args.transcript)
 
-            qBlinkControl.put(constBlinkStop)
+            changeBlinkRate(constBlinkStop)
 
         # Summary
         if firstProcessStep <= processStep.Summarize:
 
             """ Skip summarization for now
-            qBlinkControl.put(constBlink2)
+            changeBlinkRate(constBlink2)
 
             if args.summary == 0:
                 # summarize the transcript
@@ -615,14 +624,14 @@ while not done:
                 summary = summaryFile.read()
                 logger.info("Using summary file: " + summaryArg)
             
-            qBlinkControl.put(constBlinkStop)
+            changeBlinkRate(constBlinkStop)
             """
 
 
         # Keywords    
         if firstProcessStep <= processStep.Keywords:
 
-            qBlinkControl.put(constBlink3)
+            changeBlinkRate(constBlink3)
 
             if args.keywords == 0:
                 # extract the keywords from the summary
@@ -640,12 +649,12 @@ while not done:
                 keywords = summaryFile.read()
                 logger.info("Using abstract file: " + args.keywords)
 
-            qBlinkControl.put(constBlinkStop)
+            changeBlinkRate(constBlinkStop)
 
         # Image
         if firstProcessStep <= processStep.Image:
 
-            qBlinkControl.put(constBlink4)
+            changeBlinkRate(constBlink4)
 
             if args.image == 0:
 
@@ -697,33 +706,31 @@ while not done:
                 imageURL = [args.image ]
                 logger.info("Using image file: " + args.image )
 
-            qBlinkControl.put(constBlinkStop)
+            changeBlinkRate(constBlinkStop)
             
         # Display
 
-        if isOverSSL:
+        if isOverRemoteSSL:
             # don't try to disply
             print("Not displaying image because we're running over SSL")
         else:
             # display the image
-            qBlinkControl.put(constBlinkSlow)
+            changeBlinkRate(constBlinkSlow)
             logger.info("Displaying image...")
             webbrowser.open(imageURL)
 
-            qBlinkControl.put(constBlinkStop)
+            changeBlinkRate(constBlinkStop)
 
         #delay
         print("delaying " + str(loopDelay) + " seconds...")
         time.sleep(loopDelay)
-        # clear the queue in case we're not on an RPi
-        qBlinkControl.queue.clear()
-        qBlinkControl.put(constBlinkStop)
-
+        changeBlinkRate(constBlinkStop)
 
 # all done
 if not g_isMacOS:
+    # running on RPi
     # Stop the LED thread
-    qBlinkControl.put(constBlinkDie)
+    changeBlinkRate(constBlinkDie)
     led_thread1.join()
 
     # Clean up the GPIO pins
