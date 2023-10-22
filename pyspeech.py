@@ -712,12 +712,13 @@ while not done:
         time.sleep(loopDelay)
         # clear the queue in case we're not on an RPi
         qBlinkControl.queue.clear()
+        qBlinkControl.put(constBlinkStop)
 
 
 # all done
 if not g_isMacOS:
     # Stop the LED thread
-    q.put(None)
+    qBlinkControl.put(constBlinkStop)
     led_thread1.join()
 
     # Clean up the GPIO pins
