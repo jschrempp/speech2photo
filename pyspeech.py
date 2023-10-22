@@ -112,20 +112,20 @@ promptForAbstraction = "What is the most interesting concept in the following te
 
 # image modifiers
 imageModifiersArtist = [
-                    " in the style of Picasso",
-                    " in the style of Van Gogh",
-                    " in the style of Monet",
-                    " in the style of Dali",
-                    " in the style of Escher",
-                    " in the style of Rembrandt",
+                    "Picasso",
+                    "Van Gogh",
+                    "Monet",
+                    "Dali",
+                    "Escher",
+                    "Rembrandt",
                     ]
 imageModifiersMedium = [
-                    " as a painting",
-                    " as a watercolor",
-                    " as a sketch",
-                    " as a drawing",
-                    " as a sculpture",
-                    " as a photograph",
+                    "painting",
+                    "watercolor",
+                    "sketch",
+                    "drawing",
+                    "sculpture",
+                    "photograph",
                     ]
 
 # Define  constants for blinking the LED (onTime, offTime)
@@ -405,7 +405,7 @@ def getImageURL(phrase):
     import random
     random.shuffle(imageModifiersArtist)
     random.shuffle(imageModifiersMedium)
-    prompt = prompt + imageModifiersArtist[0] + imageModifiersMedium[0]
+    prompt = prompt + " in the style of " + imageModifiersArtist[0] + " as a " + imageModifiersMedium[0]
 
     prompt = f"{prompt} for the following concept: {phrase}"
 
@@ -426,7 +426,7 @@ def getImageURL(phrase):
     image_url[2] = responseImage['data'][2]['url']
     image_url[3] = responseImage['data'][3]['url']
 
-    return image_url
+    return image_url, imageModifiersArtist[0], imageModifiersMedium[0]
 
 
 
@@ -463,6 +463,7 @@ else:
 if not os.path.exists("history"):
     os.makedirs("history")
 
+# parse the command line arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("-s", "--savefiles", help="save the files", action="store_true") # optional argument
 parser.add_argument("-d", "--debug", help="0:info, 1:prompts, 2:responses", type=int) # optional argument
@@ -471,6 +472,7 @@ parser.add_argument("-t", "--transcript", help="use transcript from file", type=
 parser.add_argument("-T", "--summary", help="use summary from file", type=str, default=0) # optional argument
 parser.add_argument("-k", "--keywords", help="use keywords from file", type=str, default=0) # optional argument
 parser.add_argument("-i", "--image", help="use image from file", type=str, default=0) # optional argument
+parser.add_argument("-o", "--onlykeywords", help="use audio directly without extracting keywords", action="store_true") # optional argument
 
 args = parser.parse_args()
 
@@ -486,9 +488,8 @@ elif args.debug == 2:
     logger.debug("Debug level set to show prompts and response JSON")
 
 
-# if we're given a file then start at that step
+# if we're given a file via the command line then start at that step
 # check in order so that processStartStep will be the maximum value
-
 firstProcessStep = processStep.NoneSpecified
 if args.wav != 0:
     firstProcessStep = processStep.Audio
@@ -501,6 +502,10 @@ elif args.summary != 0:
 elif args.transcript != 0: 
     firstProcessStep  = processStep.Transcribe
 
+# if set, then record only 10 seconds of audio and use that for the keywords
+g_isAudioKeywords = False
+if args.onlykeywords:
+    g_isAudioKeywords = True
 
 
 
@@ -546,6 +551,10 @@ while not done:
             loopDelay = 0
             firstProcessStep = processStep.Audio
 
+        if g_isAudioKeywords:
+            # we are not going to extract keywords from the transcript
+            duration = 10
+
     # loop will normally process audio and display the images
     # but if we're given a file then start at that step (processStep)
     for i in range(0,numLoops,1):
@@ -559,7 +568,7 @@ while not done:
         keywords = ""
         imageURL = ""
 
-        # Audio
+        # Audio - get a recording.wav file
         if firstProcessStep <= processStep.Audio:
 
             changeBlinkRate(constBlinkAudioCapture)
@@ -580,7 +589,7 @@ while not done:
 
             changeBlinkRate(constBlinkStop)
     
-        # Transcribe
+        # Transcribe - set transcript
         if firstProcessStep <= processStep.Transcribe:
         
             changeBlinkRate(constBlink1)
@@ -602,7 +611,7 @@ while not done:
 
             changeBlinkRate(constBlinkStop)
 
-        # Summary
+        # Summary - set summary
         if firstProcessStep <= processStep.Summarize:
 
             """ Skip summarization for now
@@ -628,30 +637,36 @@ while not done:
             """
 
 
-        # Keywords    
+        # Keywords - set keywords
         if firstProcessStep <= processStep.Keywords:
 
             changeBlinkRate(constBlink3)
 
-            if args.keywords == 0:
-                # extract the keywords from the summary
-                keywords = getAbstractForImageGen(transcript) 
+            if not g_isAudioKeywords:
 
-                if args.savefiles:
-                    f = open("history/" + timestr + "-keywords" + ".txt", "w")
-                    f.write(keywords)
-                    f.close()
+                if args.keywords == 0:
+                    # extract the keywords from the summary
+                    keywords = getAbstractForImageGen(transcript) 
 
+                    if args.savefiles:
+                        f = open("history/" + timestr + "-keywords" + ".txt", "w")
+                        f.write(keywords)
+                        f.close()
+
+                else:
+                    # use the extract file specified by the extract argument
+                    summaryFile = open(args.keywords, "r")
+                    # read the summary file
+                    keywords = summaryFile.read()
+                    logger.info("Using abstract file: " + args.keywords)
+                
             else:
-                # use the extract file specified by the extract argument
-                summaryFile = open(args.keywords, "r")
-                # read the summary file
-                keywords = summaryFile.read()
-                logger.info("Using abstract file: " + args.keywords)
+                # use the transcript as the keywords
+                keywords = transcript
 
             changeBlinkRate(constBlinkStop)
 
-        # Image
+        # Image - set imageURL
         if firstProcessStep <= processStep.Image:
 
             changeBlinkRate(constBlink4)
@@ -659,7 +674,10 @@ while not done:
             if args.image == 0:
 
                 # use the keywords to generate images
-                imageURL = getImageURL(keywords)    
+                imageInfo = getImageURL(keywords)
+                imageURL = imageInfo[0]
+                imageArtist = imageInfo[1]
+                imageMedium = imageInfo[2]   
 
                 # save the images from a urls into imgObjects[]
                 imgObjects = []
@@ -684,12 +702,13 @@ while not done:
                     new_im.paste(imgObjects[count], loc)
 
                 # add text at the bottom
+                imageCaption = keywords + " as a " + imageMedium + " by " + imageArtist
                 draw = ImageDraw.Draw(new_im)
                 draw.rectangle(((0, new_im.height - 50), (new_im.width, new_im.height)), fill="black")
                 font = ImageFont.truetype("arial.ttf", 18)
                 # decide if text will exceed the width of the image
                 #textWidth, textHeight = font.getsize(text)
-                draw.text((10, new_im.height - 30), keywords, (255,255,255), font=font)
+                draw.text((10, new_im.height - 30), imageCaption, (255,255,255), font=font)
 
                 # save the combined image
                 newFileName = "history/" + timestr + "-image" + ".png"
@@ -708,8 +727,7 @@ while not done:
 
             changeBlinkRate(constBlinkStop)
             
-        # Display
-
+        # Display - display imageURL
         if isOverRemoteSSL:
             # don't try to disply
             print("Not displaying image because we're running over SSL")
