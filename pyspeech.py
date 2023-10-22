@@ -71,6 +71,7 @@ import shutil
 import re
 import os
 import openai
+import ssl
 #import numpy
 from enum import IntEnum
 from PIL import Image, ImageDraw, ImageFont
@@ -439,6 +440,11 @@ logging.basicConfig(level=logging.WARNING, format=' %(asctime)s - %(levelname)s 
 # set the OpenAI API key
 openai.api_key_path = 'creepy photo secret key'
 
+# check for running over SSL
+isOverSSL = False
+if ssl.OPENSSL_VERSION:
+    isOverSSL = True
+
 # create a directory if one does not exist
 if not os.path.exists("history"):
     os.makedirs("history")
@@ -690,16 +696,22 @@ while not done:
             
         # Display
 
-        qBlinkControl.put(constBlinkSlow)
+        if isOverSSL:
+            # don't try to disply
+            pass
+        else:
+            # display the image
+            qBlinkControl.put(constBlinkSlow)
+            logger.info("Displaying image...")
+            webbrowser.open(imageURL)
 
-        logger.info("Displaying image...")
-        webbrowser.open(imageURL)
-
-        qBlinkControl.put(constBlinkStop)
+            qBlinkControl.put(constBlinkStop)
 
         #delay
         print("delaying " + str(loopDelay) + " seconds...")
         time.sleep(loopDelay)
+        # clear the queue in case we're not on an RPi
+        qBlinkControl.queue.clear()
 
 
 # all done
