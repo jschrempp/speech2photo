@@ -158,7 +158,7 @@ if not g_isMacOS:
     # Communicate by putting a tuple of (onTime, offTime) in the qBlinkControl queue
     #
     def blink_led(q):
-        print("Starting LED thread") # why do I need to have this for the thread to work?
+        # print("Starting LED thread") # why do I need to have this for the thread to work?
         logger.info("logging, Starting LED thread")
 
         # initialize the LED
@@ -703,7 +703,7 @@ while not done:
 
         if isOverSSL:
             # don't try to disply
-            pass
+            print("Not displaying image because we're running over SSL")
         else:
             # display the image
             qBlinkControl.put(constBlinkSlow)
