@@ -151,6 +151,7 @@ if not g_isMacOS:
     constBlink4 = (0.2, 0.2)
 
     constBlinkStop = (-1, -1)
+    constBlinkDie = (-2, -2)
 
     # Define a function to blink the LED
     # This function is run on a thread
@@ -174,6 +175,10 @@ if not g_isMacOS:
             if blink_time is None:
                 # no change
                 pass
+            elif blink_time[0] == -2:
+                # die
+                logger.info("LED thread dying")
+                break
             elif blink_time[0] == -1:
                 # stop blinking
                 GPIO.output(8, GPIO.LOW)
