@@ -497,11 +497,9 @@ elif args.debug == 2:
 
 
 # if we're given a file via the command line then start at that step
-# check in order so that processStartStep will be the maximum value
+# check in reverse order so that processStartStep will be the latest step for any set of arguments
 firstProcessStep = processStep.NoneSpecified
-if args.wav != 0:
-    firstProcessStep = processStep.Audio
-elif args.image != 0: 
+if args.image != 0: 
     firstProcessStep = processStep.Image
 elif args.keywords != 0: 
     firstProcessStep = processStep.Keywords
@@ -509,6 +507,8 @@ elif args.summary != 0:
     firstProcessStep = processStep.Summarize
 elif args.transcript != 0: 
     firstProcessStep  = processStep.Transcribe
+elif args.wav != 0:
+    firstProcessStep = processStep.Audio
 
 # if set, then record only 10 seconds of audio and use that for the keywords
 g_isAudioKeywords = False
@@ -758,6 +758,7 @@ while not done:
             changeBlinkRate(constBlinkStop)
             
         # Display - display imageURL
+        
         if isOverRemoteSSL:
             # don't try to disply
             print("Not displaying image because we're running over SSL")
