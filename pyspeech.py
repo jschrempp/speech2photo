@@ -101,7 +101,7 @@ else:
 
 
 # Set the duration of each recording in seconds
-duration = 10
+duration = 120
 
 # Set the number of times to loop when in auto mode
 loopsMax = 10
@@ -473,7 +473,6 @@ parser.add_argument("-T", "--summary", help="use summary from file", type=str, d
 parser.add_argument("-k", "--keywords", help="use keywords from file", type=str, default=0) # optional argument
 parser.add_argument("-i", "--image", help="use image from file", type=str, default=0) # optional argument
 parser.add_argument("-o", "--onlykeywords", help="use audio directly without extracting keywords", action="store_true") # optional argument
-
 args = parser.parse_args()
 
 # set the debug level
@@ -507,7 +506,8 @@ g_isAudioKeywords = False
 if args.onlykeywords:
     g_isAudioKeywords = True
 
-
+# if true, don't ask user for input, rely on hardware buttons
+g_isUsingHardwareButtons = False
 
 # ----------------------
 # Main Loop 
@@ -527,17 +527,27 @@ while not done:
     else:
         # no command line input parameters so prompt the user for a command
 
-        # print menu
-        print("\r\n\n\n")
-        print("Commands:")
-        print("   o: once, record and display; default")
-        print("   a: auto mode, record, display, and loop")
-        print("   q: quit")
 
-        # wait for the user to press a key
-        inputCommand = input("Type a command ...")
+        if not g_isUsingHardwareButtons: 
+            # print menu
+            print("\r\n\n\n")
+            print("Commands:")
+            print("   o: Once, record and display; default")
+            print("   a: Auto mode, record, display, and loop")
+            if not g_isMacOS:
+                # running on RPi
+                print("   h: Hardware control")
+            print("   q: Quit")
 
-        if inputCommand == 'q': # quit
+            # wait for the user to press a key
+            inputCommand = input("Type a command ...")
+
+        if inputCommand == 'h':
+            # not in the menu except on RPi
+            # don't ask the user for input again, rely on hardware buttons
+            g_isUsingHardwareButtons = True
+
+        elif inputCommand == 'q': # quit
             done = True
             numLoops = 0
             loopDelay = 0
@@ -550,6 +560,16 @@ while not done:
             numLoops = 1
             loopDelay = 0
             firstProcessStep = processStep.Audio
+
+        if g_isUsingHardwareButtons:
+            isButtonPressed = False
+            while not isButtonPressed:
+                # running on RPi
+                # read gpio pin, if pressed, then do a cycle of keyword input
+                if GPIO.input(8) == GPIO.HIGH:
+                    g_isAudioKeywords = True
+                    numLoops = 1
+                    isButtonPressed = True
 
         if g_isAudioKeywords:
             # we are not going to extract keywords from the transcript
