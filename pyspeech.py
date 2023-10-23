@@ -768,12 +768,12 @@ while not done:
             changeBlinkRate(constBlinkSlow)
             logger.info("Displaying image...")
 
-            import subprocess
-            subprocess.call(["feh", newFileName])
+            #import subprocess
+            #subprocess.call(["feh", newFileName])
 
             # display the image with pillow    USES EYE OF MATE
-            #image = Image.open(newFileName)
-            #image.show()
+            image = Image.open(newFileName)
+            image.show()
 
             #webbrowser.open(imageURL)
 
