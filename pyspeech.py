@@ -769,8 +769,10 @@ while not done:
             changeBlinkRate(constBlinkStop)
 
         #delay
-        print("delaying " + str(loopDelay) + " seconds...")
-        time.sleep(loopDelay)
+        if not g_isUsingHardwareButtons:
+            # running on RPi
+            print("delaying " + str(loopDelay) + " seconds...")
+            time.sleep(loopDelay)
         changeBlinkRate(constBlinkStop)
 
 # all done
