@@ -531,7 +531,7 @@ while not done:
 
         # we have file parameters, so only loop once
         numLoops = 1
-        loopDelay = 0   # no delay if we're not looping
+        loopDelay = 1   # no delay if we're not looping XXX
 
     else:
         # no command line input parameters so prompt the user for a command
@@ -774,12 +774,16 @@ while not done:
 
             changeBlinkRate(constBlinkStop)
 
-        #delay
-        if not g_isUsingHardwareButtons:
-            # running on RPi
-            print("delaying " + str(loopDelay) + " seconds...")
-            time.sleep(loopDelay)
-        changeBlinkRate(constBlinkStop)
+        # are we running the command line file args?
+        if firstProcessStep > processStep.Audio or args.wav != 0:
+            # don't keep looping
+            done = True
+        else:
+            #delay
+            if not g_isUsingHardwareButtons:
+                print("delaying " + str(loopDelay) + " seconds...")
+                time.sleep(loopDelay)
+            changeBlinkRate(constBlinkStop)
 
 # all done
 if not g_isMacOS:
