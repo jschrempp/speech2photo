@@ -534,7 +534,6 @@ while not done:
     else:
         # no command line input parameters so prompt the user for a command
 
-
         if not g_isUsingHardwareButtons: 
             # print menu
             print("\r\n\n\n")
@@ -573,7 +572,7 @@ while not done:
             while not isButtonPressed:
                 # running on RPi
                 # read gpio pin, if pressed, then do a cycle of keyword input
-                if GPIO.input(8) == GPIO.HIGH:
+                if GPIO.input(g_goButton) == GPIO.HIGH:
                     g_isAudioKeywords = True
                     numLoops = 1
                     isButtonPressed = True
