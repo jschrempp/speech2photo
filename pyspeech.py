@@ -767,9 +767,13 @@ while not done:
             # display the image
             changeBlinkRate(constBlinkSlow)
             logger.info("Displaying image...")
-            # display the image with pillow
-            image = Image.open(newFileName)
-            image.show()
+
+            import subprocess
+            subprocess.call(["feh", newFileName])
+
+            # display the image with pillow    USES EYE OF MATE
+            #image = Image.open(newFileName)
+            #image.show()
 
             #webbrowser.open(imageURL)
 
