@@ -16,8 +16,9 @@ See the header comments for how to set up your Python environment.
 Author: Jim Schrempp 2023 
 
 To run:  python3 pyspeech.py
-control-c to stop the program or it will end after loopsMax loops about (duration + delay)*loopsMax seconds
-control-h to see all command line options
+
+- control-c to stop the program or it will end after loopsMax loops about (duration + delay)*loopsMax seconds
+- control-h to see all command line options
 
 Useful options:
 
