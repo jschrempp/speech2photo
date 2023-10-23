@@ -459,12 +459,14 @@ openai.api_key_path = 'creepy photo secret key'
 
 # check for running over ssl to a remote machine
 isOverRemoteSSL = False
+"""
+# this doesn't work. Running on RPi terminal it still says it is running over SSL
 if ssl.OPENSSL_VERSION and platform.system() != "Darwin":
     isOverRemoteSSL = True
     print("Running over SSL to a remote machine")
 else:
     print("Not running over SSL to a remote machine")
-
+"""
 
 # create a directory if one does not exist
 if not os.path.exists("history"):
