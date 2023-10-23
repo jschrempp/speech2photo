@@ -45,6 +45,7 @@ Specific to Raspberry Pi:
     sudo apt-get install portaudio19-dev
     sudo apt-get install libatlas-base-dev
     sudo apt-get install libopenblas-dev
+    sudo apt-get install feh
 
     3. install the following python packages    
     pip install openai
