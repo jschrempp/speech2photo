@@ -552,6 +552,7 @@ while not done:
             # not in the menu except on RPi
             # don't ask the user for input again, rely on hardware buttons
             g_isUsingHardwareButtons = True
+            print("\r\nHardware control enabled")
 
         elif inputCommand == 'q': # quit
             done = True
