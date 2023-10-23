@@ -587,7 +587,8 @@ while not done:
 
     # loop will normally process audio and display the images
     # but if we're given a file then start at that step (processStep)
-    for i in range(0,numLoops,1):
+    # and numLoops should be 1
+    for i in range(0, numLoops, 1):
 
         # format a time string to use as a file name
         timestr = time.strftime("%Y%m%d-%H%M%S")
@@ -768,27 +769,25 @@ while not done:
             changeBlinkRate(constBlinkSlow)
             logger.info("Displaying image...")
 
-            #import subprocess
-            #subprocess.call(["feh", newFileName])
-
-            # display the image with pillow    USES EYE OF MATE
+            # display the image with pillow
             image = Image.open(newFileName)
             image.show()
 
-            #webbrowser.open(imageURL)
-
             changeBlinkRate(constBlinkStop)
 
+        # The end of the for loop
+        changeBlinkRate(constBlinkStop)
         # are we running the command line file args?
         if firstProcessStep > processStep.Audio or args.wav != 0:
-            # don't keep looping
+            # We've done one and we're all done
             done = True
         else:
-            #delay
+            #delay before the next for loop iteration
             if not g_isUsingHardwareButtons:
                 print("delaying " + str(loopDelay) + " seconds...")
                 time.sleep(loopDelay)
-            changeBlinkRate(constBlinkStop)
+            
+        # end of loop
 
 # all done
 if not g_isMacOS:
