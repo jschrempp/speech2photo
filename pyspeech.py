@@ -166,7 +166,7 @@ if not g_isMacOS:
 
         # initialize the LED
         isBlinking = False
-        GPIO.output(g_goButton, GPIO.LOW)
+        GPIO.output(g_LEDRed, GPIO.LOW)
 
         while True:
             # Get the blink time from the queue
@@ -184,7 +184,7 @@ if not g_isMacOS:
                 break
             elif blink_time[0] == -1:
                 # stop blinking
-                GPIO.output(8, GPIO.LOW)
+                GPIO.output(g_LEDRed, GPIO.LOW)
                 isBlinking = False
             else:
                 onTime = blink_time[0]
