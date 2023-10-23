@@ -751,7 +751,8 @@ while not done:
                 logger.debug("imageURL: " + imageURL)
             
             else:
-                imageURL = [args.image ]
+                imageURL = [args.image]
+                newFileName = args.image
                 logger.info("Using image file: " + args.image )
 
             changeBlinkRate(constBlinkStop)
