@@ -765,7 +765,7 @@ while not done:
             changeBlinkRate(constBlinkSlow)
             logger.info("Displaying image...")
             # display the image with pillow
-            image = Image.open(imageURL)
+            image = Image.open(newFileName)
             image.show()
 
             #webbrowser.open(imageURL)
