@@ -143,11 +143,18 @@ constBlinkDie = (-2, -2)
 if not g_isMacOS:
     # --------- Raspberry Pi specific code -----------------------------------------
     logger.info("Setting up GPIO pins")
+
+    g_LEDRed = 8
+    g_goButton = 10
+
     # Set the pin numbering mode to BCM
     GPIO.setmode(GPIO.BOARD)
 
-    # Set up pin 8 as an output
-    GPIO.setup(8, GPIO.OUT, initial=GPIO.LOW)
+    # Set up pin g_LEDRed as an output
+    GPIO.setup(g_LEDRed, GPIO.OUT, initial=GPIO.LOW)
+
+    # Set up pin 10 as an input
+    GPIO.setup(g_goButton, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
     # Define a function to blink the LED
     # This function is run on a thread
@@ -159,7 +166,7 @@ if not g_isMacOS:
 
         # initialize the LED
         isBlinking = False
-        GPIO.output(8, GPIO.LOW)
+        GPIO.output(g_goButton, GPIO.LOW)
 
         while True:
             # Get the blink time from the queue
@@ -186,11 +193,11 @@ if not g_isMacOS:
 
             if isBlinking:
                 # Turn the LED on
-                GPIO.output(8, GPIO.HIGH)
+                GPIO.output(g_LEDRed, GPIO.HIGH)
                 # Wait for blink_time seconds
                 time.sleep(onTime)
                 # Turn the LED off
-                GPIO.output(8, GPIO.LOW)
+                GPIO.output(g_LEDRed, GPIO.LOW)
                 # Wait for blink_time seconds
                 time.sleep(offTime)
 
