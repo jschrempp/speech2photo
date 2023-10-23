@@ -23,7 +23,9 @@ To run:  python3 pyspeech.py
 Useful options:
 
 -d [0,1,2] Level 0 has progress messages. Level 1 lists returns from OpenAI. Level 2 is a trace.
+
 -s Save all the intermediate files in the history/ folder (images are saved in all cases)
+
 -o Only Keywords ... The audio transcript is passed directly to the image generation service
    without any interpretation. Useful mostly for 10 second audio recording to let people speak
    a few words and get a picture from it. 
