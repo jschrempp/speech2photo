@@ -153,9 +153,10 @@ if not g_isMacOS:
 
     # Set up pin g_LEDRed as an output
     GPIO.setup(g_LEDRed, GPIO.OUT, initial=GPIO.LOW)
-
+    
     # Set up pin 10 as an input 
-    GPIO.setup(g_goButton, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+    GPIO.setup(g_goButton, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    g_buttonPressed = GPIO.LOW
 
     # Define a function to blink the LED
     # This function is run on a thread
@@ -576,7 +577,7 @@ while not done:
             while not isButtonPressed:
                 # running on RPi
                 # read gpio pin, if pressed, then do a cycle of keyword input
-                if GPIO.input(g_goButton) == GPIO.HIGH:
+                if GPIO.input(g_goButton) == g_buttonPressed:
                     g_isAudioKeywords = True
                     numLoops = 1
                     isButtonPressed = True
