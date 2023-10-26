@@ -155,8 +155,8 @@ if not g_isMacOS:
     GPIO.setup(g_LEDRed, GPIO.OUT, initial=GPIO.LOW)
     
     # Set up pin 10 as an input 
-    GPIO.setup(g_goButton, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    g_buttonPressed = GPIO.LOW
+    GPIO.setup(g_goButton, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+    g_buttonPressed = GPIO.HIGH
 
     # Define a function to blink the LED
     # This function is run on a thread
