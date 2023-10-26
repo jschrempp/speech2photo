@@ -788,8 +788,11 @@ while not done:
                     lines = textwrap.wrap(imageCaption, width=60)  #width is characters
                     y_text = new_im.height/2
                     for line in lines:
-                        width, height = font.getsize(line)
-                        draw.text(((new_im.width - width) / 2, y_text), line, font=font) #, fill=FOREGROUND)
+                        #width, height = font.getsize(line)
+                        #draw.text(((new_im.width - width) / 2, y_text), line, font=font) 
+                        #y_text += height
+                        height = 25
+                        draw.text((100, y_text), line, font=font) 
                         y_text += height
 
                     #draw.text((10, new_im.height/2), imageCaption, (255,255,255), font=font)
