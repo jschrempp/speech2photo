@@ -422,11 +422,18 @@ def getImageURL(phrase):
     logger.info("image prompt: " + prompt)
 
     # use openai to generate a picture based on the summary
-    responseImage = openai.Image.create(
-        prompt= prompt,
-        n=4,
-        size="512x512"
-        )
+    try:
+        responseImage = openai.Image.create(
+            prompt= prompt,
+            n=4,
+            size="512x512"
+            )
+    except Exception as e:
+        print("\n\n\n")
+        print(e)
+        print("\n\n\n")
+        raise (e)
+        
     
     loggerTrace.debug("responseImage: " + str(responseImage))
 
@@ -520,6 +527,9 @@ if args.onlykeywords:
 # if true, don't ask user for input, rely on hardware buttons
 g_isUsingHardwareButtons = False
 
+# if true, we had an error and want to just go back to the top of the loop
+g_abortThisIteration = False
+
 # ----------------------
 # Main Loop 
 #
@@ -590,6 +600,8 @@ while not done:
     # but if we're given a file then start at that step (processStep)
     # and numLoops should be 1
     for i in range(0, numLoops, 1):
+
+        g_abortThisIteration = False
 
         # format a time string to use as a file name
         timestr = time.strftime("%Y%m%d-%H%M%S")
@@ -706,52 +718,92 @@ while not done:
             if args.image == 0:
 
                 # use the keywords to generate images
-                imageInfo = getImageURL(keywords)
-                imageURL = imageInfo[0]
-                imageArtist = imageInfo[1]
-                imageMedium = imageInfo[2]   
+                try:
+                    imageInfo = getImageURL(keywords)
 
-                # save the images from a urls into imgObjects[]
-                imgObjects = []
-                for numURL in range(len(imageURL)):
+                    imageURL = imageInfo[0]
+                    imageArtist = imageInfo[1]
+                    imageMedium = imageInfo[2]   
 
-                    fileName = "history/" + "image" + str(numURL) + ".png"
-                    urllib.request.urlretrieve(imageURL[numURL], fileName)
+                    # save the images from a urls into imgObjects[]
+                    imgObjects = []
+                    for numURL in range(len(imageURL)):
 
-                    img = Image.open(fileName)
+                        fileName = "history/" + "image" + str(numURL) + ".png"
+                        urllib.request.urlretrieve(imageURL[numURL], fileName)
 
-                    imgObjects.append(img)
+                        img = Image.open(fileName)
 
-                # combine the images into one image
-                #widths, heights = zip(*(i.size for i in imgObjects))
-                total_width = 512*2
-                max_height = 512*2 + 50
-                new_im = Image.new('RGB', (total_width, max_height))
-                locations = [(0,0), (512,0), (0,512), (512,512)]
-                count = -1
-                for loc in locations:
-                    count += 1
-                    new_im.paste(imgObjects[count], loc)
+                        imgObjects.append(img)
 
-                # add text at the bottom
-                imageCaption = keywords + " as a " + imageMedium + " by " + imageArtist
-                draw = ImageDraw.Draw(new_im)
-                draw.rectangle(((0, new_im.height - 50), (new_im.width, new_im.height)), fill="black")
-                font = ImageFont.truetype("arial.ttf", 18)
-                # decide if text will exceed the width of the image
-                #textWidth, textHeight = font.getsize(text)
-                draw.text((10, new_im.height - 30), imageCaption, (255,255,255), font=font)
+                    # combine the images into one image
+                    #widths, heights = zip(*(i.size for i in imgObjects))
+                    total_width = 512*2
+                    max_height = 512*2 + 50
+                    new_im = Image.new('RGB', (total_width, max_height))
+                    locations = [(0,0), (512,0), (0,512), (512,512)]
+                    count = -1
+                    for loc in locations:
+                        count += 1
+                        new_im.paste(imgObjects[count], loc)
 
-                # save the combined image
-                newFileName = "history/" + timestr + "-image" + ".png"
-                new_im.save(newFileName)
+                    # add text at the bottom
+                    imageCaption = keywords + " as a " + imageMedium + " by " + imageArtist
+                    draw = ImageDraw.Draw(new_im)
+                    draw.rectangle(((0, new_im.height - 50), (new_im.width, new_im.height)), fill="black")
+                    font = ImageFont.truetype("arial.ttf", 18)
+                    # decide if text will exceed the width of the image
+                    #textWidth, textHeight = font.getsize(text)
+                    draw.text((10, new_im.height - 30), imageCaption, (255,255,255), font=font)
 
-                #if args.savefiles and args.image == 0:
-                #os.rename("image.png", timestr + "-image" + ".png")
-                #os.rename('combined.png', timestr + "-image" + ".png")
+                    # save the combined image
+                    newFileName = "history/" + timestr + "-image" + ".png"
+                    new_im.save(newFileName)
 
-                imageURL = "file://" + os.getcwd() + "/" + newFileName
-                logger.debug("imageURL: " + imageURL)
+                    #if args.savefiles and args.image == 0:
+                    #os.rename("image.png", timestr + "-image" + ".png")
+                    #os.rename('combined.png', timestr + "-image" + ".png")
+
+                    imageURL = "file://" + os.getcwd() + "/" + newFileName
+                    logger.debug("imageURL: " + imageURL)
+
+                except Exception as e:
+
+                    # problem generating images
+                    # make an image to display the error
+                    total_width = 512*2
+                    max_height = 512*2 + 50
+                    new_im = Image.new('RGB', (total_width, max_height))
+                    draw = ImageDraw.Draw(new_im)
+                    draw.rectangle(((0, 0), (new_im.width, new_im.height)), fill="black")
+                    
+                    # add error text
+                    imageCaption = str(e)
+                    
+                    font = ImageFont.truetype("arial.ttf", 24)
+                    # decide if text will exceed the width of the image
+                    #textWidth, textHeight = font.getsize(text)
+
+                    import textwrap
+                    lines = textwrap.wrap(imageCaption, width=60)  #width is characters
+                    y_text = new_im.height/2
+                    for line in lines:
+                        width, height = font.getsize(line)
+                        draw.text(((new_im.width - width) / 2, y_text), line, font=font) #, fill=FOREGROUND)
+                        y_text += height
+
+                    #draw.text((10, new_im.height/2), imageCaption, (255,255,255), font=font)
+
+                    # save the new image
+                    newFileName = "history/" + timestr + "-image" + ".png"
+                    new_im.save(newFileName)
+
+                    #if args.savefiles and args.image == 0:
+                    #os.rename("image.png", timestr + "-image" + ".png")
+                    #os.rename('combined.png', timestr + "-image" + ".png")
+
+                    imageURL = "file://" + os.getcwd() + "/" + newFileName
+                    logger.debug("Error Image Created: " + imageURL)       
             
             else:
                 imageURL = [args.image]
