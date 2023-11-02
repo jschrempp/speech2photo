@@ -3,6 +3,8 @@ Use your voice and OpenAI to make new art. Or, monitor an ongoing conversation
 and have the picture frame change to reflect the conversation - an
 eveasdropping picture frame!
 
+A video of this project in action: https://www.youtube.com/watch?v=Wzuj7Vhyl8w
+
 A full write up: https://www.jimschrempp.com/features/computer/speech_to_picture.htm
 
 Based on the WhisperFrame project idea on Hackaday.  
