@@ -1,4 +1,10 @@
 # speech2picture
+Use your voice and OpenAI to make new art. Or, monitor an ongoing conversation
+and have the picture frame change to reflect the conversation - an
+eveasdropping picture frame!
+
+A full write up: https://www.jimschrempp.com/features/computer/speech_to_picture.htm
+
 Based on the WhisperFrame project idea on Hackaday.  
 https://hackaday.com/2023/09/22/whisperframe-depicts-the-art-of-conversation/
 
