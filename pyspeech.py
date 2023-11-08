@@ -30,6 +30,14 @@ To run this you need to get an OpenAI API key and put it in a file called "creep
 OpenAI currently costs a few pennies to use. I've run this for an hour at a cost of $1.00. It was
 well worth it.
 
+ALSO NOTE: If you are not getting any audio, then you may not have given the program
+permission to access your microphone. On OSX it took me some searching to figure this out.
+https://superuser.com/questions/1441270/apps-dont-show-up-in-camera-and-microphone-privacy-settings-in-macbook
+Until the Terminal app showed up in Settings / Privacy & Security / Microphone this program
+just wont work. 
+On the RPi I had to add my user to the "audio" group. I did this
+with      usermod -a -G audio <username>
+
 Based on the WhisperFrame project idea on Hackaday.
 https://hackaday.com/2023/09/22/whisperframe-depicts-the-art-of-conversation/
 
@@ -37,20 +45,23 @@ Specific to Raspberry Pi:
     1. set up a virtual environment and activate it (to deactive use "deactivate")
     python3 -m venv .venv
     source .venv/bin/activate
-    python3 -m pip install -r requirements.txt
-
+    
     
     2. install the following packages
-    sudo apt-get install libasound2-dev
+
     sudo apt-get install portaudio19-dev
-    sudo apt-get install libatlas-base-dev
-    sudo apt-get install libopenblas-dev
-    sudo apt-get install feh
+
+        2a. for RPi version 3 also install these
+            sudo apt-get install libasound2-dev
+            sudo apt-get install libatlas-base-dev
+            sudo apt-get install libopenblas-dev
+            sudo apt-get install feh
 
     3. install the following python packages    
     pip install openai
     pip install pillow
     pip install pyaudio
+    pip install RPi.GPIO
 
     Note that when run you will see 10 or so lines of errors about sockets and JACKD and whatnot.
     Don't worry, it is still working. If you know how to fix this, please let me know.
