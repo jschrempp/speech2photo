@@ -43,9 +43,8 @@ https://hackaday.com/2023/09/22/whisperframe-depicts-the-art-of-conversation/
 
 Specific to Raspberry Pi:
     1. set up a virtual environment and activate it (to deactive use "deactivate")
-    python3 -m venv .venv
-    source .venv/bin/activate
-    
+        python3 -m venv .venv
+        source .venv/bin/activate
     
     2. install the following packages
 
@@ -58,10 +57,10 @@ Specific to Raspberry Pi:
             sudo apt-get install feh
 
     3. install the following python packages    
-    pip install openai
-    pip install pillow
-    pip install pyaudio
-    pip install RPi.GPIO
+        pip install openai
+        pip install pillow
+        pip install pyaudio
+        pip install RPi.GPIO
 
     Note that when run you will see 10 or so lines of errors about sockets and JACKD and whatnot.
     Don't worry, it is still working. If you know how to fix this, please let me know.
@@ -76,15 +75,12 @@ Author: Jim Schrempp 2023
 import platform
 import argparse
 import logging
-import webbrowser
 import urllib.request
 import time
 import shutil
 import re
 import os
 import openai
-import ssl
-#import numpy
 from enum import IntEnum
 from PIL import Image, ImageDraw, ImageFont
 
