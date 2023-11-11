@@ -131,8 +131,7 @@ imageModifiersMedium = [
                     "painting",
                     "watercolor",
                     "sketch",
-                    "drawing",
-                    "sculpture",
+                    "vivid color",
                     "photograph",
                     ]
 
@@ -161,9 +160,9 @@ if not g_isMacOS:
     # Set up pin g_LEDRed as an output
     GPIO.setup(g_LEDRed, GPIO.OUT, initial=GPIO.LOW)
     
-    # Set up pin 10 as an input 
-    GPIO.setup(g_goButton, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-    g_buttonPressed = GPIO.HIGH
+    # Set up pin 10 as an input for the start button
+    GPIO.setup(g_goButton, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    g_buttonPressed = GPIO.LOW
 
     # Define a function to blink the LED
     # This function is run on a thread
