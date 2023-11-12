@@ -69,6 +69,9 @@ Specific to Raspberry Pi:
     you are having some real audio issue, you might change the error handler to print the errors.
     
 Author: Jim Schrempp 2023 
+
+v 0.5 Initial version
+v 0.6 2023-11-12 inverted Go Button logic so it is active low (pulled to ground)
 """
 
 # import common libraries
@@ -590,7 +593,6 @@ while not done:
 
         if g_isUsingHardwareButtons:
             isButtonPressed = False
-            logger.info("Waiting for button press")
             while not isButtonPressed:
                 # running on RPi
                 # read gpio pin, if pressed, then do a cycle of keyword input
@@ -598,7 +600,6 @@ while not done:
                     g_isAudioKeywords = True
                     numLoops = 1
                     isButtonPressed = True
-                    logger.info("Button pressed")
 
         if g_isAudioKeywords:
             # we are not going to extract keywords from the transcript
