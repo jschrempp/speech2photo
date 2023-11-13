@@ -48,14 +48,22 @@ Specific to Raspberry Pi:
     
     2. install the following packages
 
-    sudo apt-get install portaudio19-dev
-
-        2a. for RPi version 3 also install these
+        2a. for RPi version 3 install these
+            sudo apt-get install portaudio19-dev
             sudo apt-get install libasound2-dev
             sudo apt-get install libatlas-base-dev
             sudo apt-get install libopenblas-dev
-            sudo apt-get install feh
+            # sudo apt-get install feh
 
+        2b. on MacOS install these
+            brew install portaudio
+            brew update-reset   # if your brew isn't working try this
+            xcode-select --install  # needed for pyaudio to install
+            pip3 install sounddevice
+            pip3 install soundfile
+            pip3 install numpy
+
+                    
     3. install the following python packages    
         pip install openai
         pip install pillow
@@ -453,6 +461,117 @@ def getImageURL(phrase):
 
     return image_url, imageModifiersArtist[0], imageModifiersMedium[0]
 
+# ----------------------
+# reformat image(s) for display
+#    return the new file name
+#
+def postProcessImages(imageURLs, imageArtist, imageMedium, keywords, timestr):
+    # save the images from a urls into imgObjects[]
+    imgObjects = []
+    for numURL in range(len(imageURLs)):
+
+        fileName = "history/" + "image" + str(numURL) + ".png"
+        urllib.request.urlretrieve(imageURLs[numURL], fileName)
+
+        img = Image.open(fileName)
+
+        imgObjects.append(img)
+
+    # combine the images into one image
+    #widths, heights = zip(*(i.size for i in imgObjects))
+    total_width = 512*2
+    max_height = 512*2 + 50
+    new_im = Image.new('RGB', (total_width, max_height))
+    locations = [(0,0), (512,0), (0,512), (512,512)]
+    count = -1
+    for loc in locations:
+        count += 1
+        new_im.paste(imgObjects[count], loc)
+
+    # add text at the bottom
+    imageCaption = keywords + " as a " + imageMedium + " by " + imageArtist
+    draw = ImageDraw.Draw(new_im)
+    draw.rectangle(((0, new_im.height - 50), (new_im.width, new_im.height)), fill="black")
+    font = ImageFont.truetype("arial.ttf", 18)
+    # decide if text will exceed the width of the image
+    #textWidth, textHeight = font.getsize(text)
+    draw.text((10, new_im.height - 30), imageCaption, (255,255,255), font=font)
+
+    # save the combined image
+    newFileName = "history/" + timestr + "-image" + ".png"
+    new_im.save(newFileName)
+
+    return newFileName
+
+# ----------------------
+# generate error message image for display
+#    return the new file name
+#
+def generateErrorImage(e, timestr):
+    # make an image to display the error
+    total_width = 512*2
+    max_height = 512*2 + 50
+    new_im = Image.new('RGB', (total_width, max_height))
+    draw = ImageDraw.Draw(new_im)
+    draw.rectangle(((0, 0), (new_im.width, new_im.height)), fill="black")
+    
+    # add error text
+    imageCaption = str(e)
+    
+    font = ImageFont.truetype("arial.ttf", 24)
+    # decide if text will exceed the width of the image
+    #textWidth, textHeight = font.getsize(text)
+
+    import textwrap
+    lines = textwrap.wrap(imageCaption, width=60)  #width is characters
+    y_text = new_im.height/2
+    for line in lines:
+        #width, height = font.getsize(line)
+        #draw.text(((new_im.width - width) / 2, y_text), line, font=font) 
+        #y_text += height
+        height = 25
+        draw.text((100, y_text), line, font=font) 
+        y_text += height
+
+    #draw.text((10, new_im.height/2), imageCaption, (255,255,255), font=font)
+
+    # save the new image
+    newFileName = "history/" + timestr + "-image" + ".png"
+    new_im.save(newFileName)
+
+    return newFileName
+
+
+import tkinter as tk
+from PIL import ImageTk, Image
+import os
+
+# Global reference to the window
+g_windowForImage = None
+
+def create_window(image_path):
+    global g_windowForImage
+    g_windowForImage = tk.Toplevel(root)
+    g_windowForImage.geometry("+500+500")  # Position at (500, 500)
+
+    # Open an image file
+    img = Image.open(image_path)
+    # Convert the image to a PhotoImage
+    img = ImageTk.PhotoImage(img)
+    # Create a label and add the image to it
+    label = tk.Label(g_windowForImage, image=img)
+    label.image = img  # Keep a reference to the image to prevent it from being garbage collected
+    label.pack()
+
+def close_window():
+    global g_windowForImage
+    if g_windowForImage is not None:
+        g_windowForImage.destroy()
+        g_windowForImage = None
+
+
+
+
 
 
 # ----------------------
@@ -489,6 +608,11 @@ else:
 # create a directory if one does not exist
 if not os.path.exists("history"):
     os.makedirs("history")
+
+# create image display window
+root = tk.Tk()
+root.withdraw()  # Hide the root window
+
 
 # parse the command line arguments
 parser = argparse.ArgumentParser()
@@ -619,7 +743,7 @@ while not done:
         transcript = ""
         summary = ""
         keywords = ""
-        imageURL = ""
+        imageURLs = ""
 
         # Audio - get a recording.wav file
         if firstProcessStep <= processStep.Audio:
@@ -728,97 +852,26 @@ while not done:
 
                 # use the keywords to generate images
                 try:
-                    imageInfo = getImageURL(keywords)
+                    imagesInfo = getImageURL(keywords)
 
-                    imageURL = imageInfo[0]
-                    imageArtist = imageInfo[1]
-                    imageMedium = imageInfo[2]   
+                    imageURLs = imagesInfo[0]
+                    imageArtist = imagesInfo[1]
+                    imageMedium = imagesInfo[2]   
 
-                    # save the images from a urls into imgObjects[]
-                    imgObjects = []
-                    for numURL in range(len(imageURL)):
+                    newFileName = postProcessImages(imageURLs, imageArtist, imageMedium, keywords, timestr)
 
-                        fileName = "history/" + "image" + str(numURL) + ".png"
-                        urllib.request.urlretrieve(imageURL[numURL], fileName)
-
-                        img = Image.open(fileName)
-
-                        imgObjects.append(img)
-
-                    # combine the images into one image
-                    #widths, heights = zip(*(i.size for i in imgObjects))
-                    total_width = 512*2
-                    max_height = 512*2 + 50
-                    new_im = Image.new('RGB', (total_width, max_height))
-                    locations = [(0,0), (512,0), (0,512), (512,512)]
-                    count = -1
-                    for loc in locations:
-                        count += 1
-                        new_im.paste(imgObjects[count], loc)
-
-                    # add text at the bottom
-                    imageCaption = keywords + " as a " + imageMedium + " by " + imageArtist
-                    draw = ImageDraw.Draw(new_im)
-                    draw.rectangle(((0, new_im.height - 50), (new_im.width, new_im.height)), fill="black")
-                    font = ImageFont.truetype("arial.ttf", 18)
-                    # decide if text will exceed the width of the image
-                    #textWidth, textHeight = font.getsize(text)
-                    draw.text((10, new_im.height - 30), imageCaption, (255,255,255), font=font)
-
-                    # save the combined image
-                    newFileName = "history/" + timestr + "-image" + ".png"
-                    new_im.save(newFileName)
-
-                    #if args.savefiles and args.image == 0:
-                    #os.rename("image.png", timestr + "-image" + ".png")
-                    #os.rename('combined.png', timestr + "-image" + ".png")
-
-                    imageURL = "file://" + os.getcwd() + "/" + newFileName
-                    logger.debug("imageURL: " + imageURL)
+                    imageURLs = "file://" + os.getcwd() + "/" + newFileName
+                    logger.debug("imageURL: " + imageURLs)
 
                 except Exception as e:
 
-                    # problem generating images
-                    # make an image to display the error
-                    total_width = 512*2
-                    max_height = 512*2 + 50
-                    new_im = Image.new('RGB', (total_width, max_height))
-                    draw = ImageDraw.Draw(new_im)
-                    draw.rectangle(((0, 0), (new_im.width, new_im.height)), fill="black")
-                    
-                    # add error text
-                    imageCaption = str(e)
-                    
-                    font = ImageFont.truetype("arial.ttf", 24)
-                    # decide if text will exceed the width of the image
-                    #textWidth, textHeight = font.getsize(text)
+                    newFileName = generateErrorImage(e, timestr)
 
-                    import textwrap
-                    lines = textwrap.wrap(imageCaption, width=60)  #width is characters
-                    y_text = new_im.height/2
-                    for line in lines:
-                        #width, height = font.getsize(line)
-                        #draw.text(((new_im.width - width) / 2, y_text), line, font=font) 
-                        #y_text += height
-                        height = 25
-                        draw.text((100, y_text), line, font=font) 
-                        y_text += height
-
-                    #draw.text((10, new_im.height/2), imageCaption, (255,255,255), font=font)
-
-                    # save the new image
-                    newFileName = "history/" + timestr + "-image" + ".png"
-                    new_im.save(newFileName)
-
-                    #if args.savefiles and args.image == 0:
-                    #os.rename("image.png", timestr + "-image" + ".png")
-                    #os.rename('combined.png', timestr + "-image" + ".png")
-
-                    imageURL = "file://" + os.getcwd() + "/" + newFileName
-                    logger.debug("Error Image Created: " + imageURL)       
+                    imageURLs = "file://" + os.getcwd() + "/" + newFileName
+                    logger.debug("Error Image Created: " + imageURLs)       
             
             else:
-                imageURL = [args.image]
+                imageURLs = [args.image]
                 newFileName = args.image
                 logger.info("Using image file: " + args.image )
 
@@ -835,8 +888,17 @@ while not done:
             logger.info("Displaying image...")
 
             # display the image with pillow
-            image = Image.open(newFileName)
-            image.show()
+            #image = Image.open(newFileName)
+            #image.show()
+
+            # When it's time to display the image:
+            create_window(newFileName)
+
+            # delay 10 seconds 
+            time.sleep(10)
+
+            # When it's time to close the window:
+            close_window()
 
             changeBlinkRate(constBlinkStop)
 
