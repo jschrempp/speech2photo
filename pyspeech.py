@@ -65,6 +65,10 @@ Specific to Raspberry Pi:
 
             set your openai key
             https://help.openai.com/en/articles/5112595-best-practices-for-api-key-safety
+                echo "export OPENAI_API_KEY='yourkey'" >> ~/.zshrc
+                source ~/.zshrc
+                echo $OPENAI_API_KEY  # to verify
+                hmmm, we don't do this yet it works ... openai.api_key = os.environ["OPENAI_API_KEY"]
 
             Use finder and navigate to /Applications/Python 3.12
                   Then doublelick on "Install Certificates.command"
