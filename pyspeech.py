@@ -63,6 +63,12 @@ Specific to Raspberry Pi:
             pip3 install soundfile
             pip3 install numpy
 
+            set your openai key
+            https://help.openai.com/en/articles/5112595-best-practices-for-api-key-safety
+
+            Use finder and navigate to /Applications/Python 3.12
+                  Then doublelick on "Install Certificates.command"
+
                     
     3. install the following python packages    
         pip install openai
@@ -91,7 +97,11 @@ import time
 import shutil
 import re
 import os
+import json 
 import openai
+from openai import OpenAI
+
+client = OpenAI() #  api_key_path='creepy photo secret key')
 from enum import IntEnum
 from PIL import Image, ImageDraw, ImageFont
 
@@ -339,16 +349,18 @@ def recordAudioFromMicrophone():
 def getTranscript(wavFileName):
 
     # transcribe the recording
-    # Note: you need to be using OpenAI Python v0.27.0 for the code below to work
     logger.info("Transcribing...")
     audio_file= open(wavFileName, "rb")
-    responseTranscript = openai.Audio.transcribe("whisper-1", audio_file)
+    responseTranscript = client.audio.transcriptions.create(
+        model="whisper-1", 
+        file=audio_file)
 
-    # print the transcript
-    loggerTrace.debug("Transcript: " + str(responseTranscript))
+    # print the transcript object
+    loggerTrace.debug("Transcript object: " + str(responseTranscript))
 
-    # get the text from the transcript
-    transcript = responseTranscript["text"]     
+    transcript = responseTranscript.text 
+
+    loggerTrace.debug("Transcript text: " + transcript)
 
     return transcript
 
@@ -360,13 +372,11 @@ def getSummary(textInput):
     # summarize the transcript 
     logger.info("Summarizing...")
 
-    responseSummary = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "user", "content" : 
-            f"Please summarize the following text:\n{textInput}" }
-        ]               
-    )
+    responseSummary = client.chat.completions.create(model="gpt-3.5-turbo",
+    messages=[
+        {"role": "user", "content" : 
+        f"Please summarize the following text:\n{textInput}" }
+    ])
     loggerTrace.debug("responseSummary: " + str(responseSummary))
 
     summary = responseSummary['choices'][0]['message']['content'].strip()
@@ -388,12 +398,10 @@ def getAbstractForImageGen(inputText):
     prompt = promptForAbstraction + "'''" + inputText + "'''"
     loggerTrace.debug ("prompt for extract: " + prompt)
 
-    responseForImage = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "user", "content": prompt}
-        ]              
-    )
+    responseForImage = client.chat.completions.create(model="gpt-3.5-turbo",
+    messages=[
+        {"role": "user", "content": prompt}
+    ])
 
     loggerTrace.debug("responseForImageGen: " + str(responseForImage))
 
@@ -440,24 +448,25 @@ def getImageURL(phrase):
 
     # use openai to generate a picture based on the summary
     try:
-        responseImage = openai.Image.create(
+        responseImage = client.images.generate(
             prompt= prompt,
             n=4,
-            size="512x512"
-            )
+            size="512x512")
     except Exception as e:
         print("\n\n\n")
         print(e)
         print("\n\n\n")
         raise (e)
         
-    
     loggerTrace.debug("responseImage: " + str(responseImage))
 
-    image_url = [responseImage['data'][0]['url']] * 4
-    image_url[1] = responseImage['data'][1]['url']
-    image_url[2] = responseImage['data'][2]['url']
-    image_url[3] = responseImage['data'][3]['url']
+    temp2 = responseImage.data[0].url
+    print ("TEMP2: " + str(temp2))
+
+    image_url = [responseImage.data[0].url] * 4
+    image_url[1] = responseImage.data[1].url
+    image_url[2] = responseImage.data[2].url
+    image_url[3] = responseImage.data[3].url
 
     return image_url, imageModifiersArtist[0], imageModifiersMedium[0]
 
@@ -470,8 +479,14 @@ def postProcessImages(imageURLs, imageArtist, imageMedium, keywords, timestr):
     imgObjects = []
     for numURL in range(len(imageURLs)):
 
+        print ("working on url: " + imageURLs[numURL])
+
         fileName = "history/" + "image" + str(numURL) + ".png"
         urllib.request.urlretrieve(imageURLs[numURL], fileName)
+
+        # get image from url to file without ssl verification
+        # https://stackoverflow.com/questions/27835619/urllib-and-ssl-certificate-verify-failed-error
+
 
         img = Image.open(fileName)
 
@@ -541,7 +556,9 @@ def generateErrorImage(e, timestr):
 
     return newFileName
 
-
+'''
+early experimental code follows
+'''
 import tkinter as tk
 from PIL import ImageTk, Image
 import os
@@ -570,6 +587,13 @@ def close_window():
         g_windowForImage = None
 
 
+root = tk.Tk()
+root.withdraw()  # Hide the root window
+
+
+'''
+end of early experimental code
+'''
 
 
 
@@ -592,7 +616,16 @@ class processStep(IntEnum):
 logging.basicConfig(level=logging.WARNING, format=' %(asctime)s - %(levelname)s - %(message)s')
 
 # set the OpenAI API key
-openai.api_key_path = 'creepy photo secret key'
+#raise Exception("The 'openai.api_key_path' option isn't read in the client API. 
+# You will need to pass it when you instantiate the client, 
+# e.g. 'OpenAI(api_key_path='creepy photo secret key')'")
+
+'''Traceback (most recent call last):
+  File "/Users/jschrempp/Documents/devschrempp/GitHub/jschrempp.speech2picture/pyspeech.py", line 97, in <module>
+    client = OpenAI(api_key_path='creepy photo secret key')
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: OpenAI.__init__() got an unexpected keyword argument 'api_key_path'
+'''
 
 # check for running over ssl to a remote machine
 isOverRemoteSSL = False
@@ -865,6 +898,8 @@ while not done:
 
                 except Exception as e:
 
+                    print ("AI Image Error: " + str(e))
+
                     newFileName = generateErrorImage(e, timestr)
 
                     imageURLs = "file://" + os.getcwd() + "/" + newFileName
@@ -888,9 +923,10 @@ while not done:
             logger.info("Displaying image...")
 
             # display the image with pillow
-            #image = Image.open(newFileName)
-            #image.show()
+            image = Image.open(newFileName)
+            image.show()
 
+            ''' Experimenting with control of the image display window
             # When it's time to display the image:
             create_window(newFileName)
 
@@ -899,7 +935,8 @@ while not done:
 
             # When it's time to close the window:
             close_window()
-
+            '''
+            
             changeBlinkRate(constBlinkStop)
 
         # The end of the for loop
