@@ -86,6 +86,8 @@ Author: Jim Schrempp 2023
 
 v 0.5 Initial version
 v 0.6 2023-11-12 inverted Go Button logic so it is active low (pulled to ground)
+v 0.7 updated to python 3.12 and openAI 1.0.0 (wow that was a pain)
+      BE SURE to read updated install instructions above
 """
 
 # import common libraries
@@ -101,7 +103,7 @@ import json
 import openai
 from openai import OpenAI
 
-client = OpenAI() #  api_key_path='creepy photo secret key')
+client = OpenAI() 
 from enum import IntEnum
 from PIL import Image, ImageDraw, ImageFont
 
@@ -460,9 +462,6 @@ def getImageURL(phrase):
         
     loggerTrace.debug("responseImage: " + str(responseImage))
 
-    temp2 = responseImage.data[0].url
-    print ("TEMP2: " + str(temp2))
-
     image_url = [responseImage.data[0].url] * 4
     image_url[1] = responseImage.data[1].url
     image_url[2] = responseImage.data[2].url
@@ -479,14 +478,8 @@ def postProcessImages(imageURLs, imageArtist, imageMedium, keywords, timestr):
     imgObjects = []
     for numURL in range(len(imageURLs)):
 
-        print ("working on url: " + imageURLs[numURL])
-
         fileName = "history/" + "image" + str(numURL) + ".png"
         urllib.request.urlretrieve(imageURLs[numURL], fileName)
-
-        # get image from url to file without ssl verification
-        # https://stackoverflow.com/questions/27835619/urllib-and-ssl-certificate-verify-failed-error
-
 
         img = Image.open(fileName)
 
@@ -557,8 +550,8 @@ def generateErrorImage(e, timestr):
     return newFileName
 
 '''
-early experimental code follows
-'''
+#early experimental code follows
+
 import tkinter as tk
 from PIL import ImageTk, Image
 import os
@@ -586,13 +579,13 @@ def close_window():
         g_windowForImage.destroy()
         g_windowForImage = None
 
-
+# create image display window
 root = tk.Tk()
-root.withdraw()  # Hide the root window
+#root.withdraw()  # Hide the root window
 
 
-'''
-end of early experimental code
+
+#end of early experimental code
 '''
 
 
@@ -642,9 +635,7 @@ else:
 if not os.path.exists("history"):
     os.makedirs("history")
 
-# create image display window
-root = tk.Tk()
-root.withdraw()  # Hide the root window
+
 
 
 # parse the command line arguments
