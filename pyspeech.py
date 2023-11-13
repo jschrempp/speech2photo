@@ -45,6 +45,13 @@ Specific to Raspberry Pi:
     1. set up a virtual environment and activate it (to deactive use "deactivate")
         python3 -m venv .venv
         source .venv/bin/activate
+
+        set your openai key
+            https://help.openai.com/en/articles/5112595-best-practices-for-api-key-safety
+                echo "export OPENAI_API_KEY='yourkey'" >> ~/.zshrc
+                source ~/.zshrc
+                echo $OPENAI_API_KEY  # to verify
+                hmmm, we don't do this yet it works ... openai.api_key = os.environ["OPENAI_API_KEY"]
     
     2. install the following packages
 
@@ -63,19 +70,12 @@ Specific to Raspberry Pi:
             pip3 install soundfile
             pip3 install numpy
 
-            set your openai key
-            https://help.openai.com/en/articles/5112595-best-practices-for-api-key-safety
-                echo "export OPENAI_API_KEY='yourkey'" >> ~/.zshrc
-                source ~/.zshrc
-                echo $OPENAI_API_KEY  # to verify
-                hmmm, we don't do this yet it works ... openai.api_key = os.environ["OPENAI_API_KEY"]
-
             Use finder and navigate to /Applications/Python 3.12
                   Then doublelick on "Install Certificates.command"
 
                     
     3. install the following python packages    
-        pip install openai
+        pip install openai # --upgrade
         pip install pillow
         pip install pyaudio
         pip install RPi.GPIO
