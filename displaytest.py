@@ -10,12 +10,9 @@ from queue import Queue
 # Global reference to the window
 g_windowForImage = None
 label = None
-
 def create_window():
 
     global g_windowForImage
-    global label
-
     # create image display window
     root = tk.Tk()
     root.withdraw()  # Hide the root window
@@ -25,6 +22,8 @@ def create_window():
 def display_image(image_path):
 
     global g_windowForImage
+    global label
+
 
     # Open an image file
     try:
@@ -37,7 +36,9 @@ def display_image(image_path):
     # Convert the image to a PhotoImage
     img = ImageTk.PhotoImage(img)
     # Create a label and add the image to it
-    label = tk.Label(g_windowForImage, image=img)
+    if label is None:
+        label = tk.Label(g_windowForImage)
+    label.configure(image=img)
     label.image = img  # Keep a reference to the image to prevent it from being garbage collected
     label.pack() # Show the label
 
@@ -72,7 +73,7 @@ runLoop = True
 while runLoop:
     g_windowForImage.update_idletasks()
     g_windowForImage.update()
-    time.sleep(10)
+    time.sleep(3)
     display_image(secondFileName)
 
 
