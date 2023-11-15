@@ -19,7 +19,7 @@ def create_window():
     root = tk.Tk()
     root.withdraw()  # Hide the root window
     g_windowForImage = tk.Toplevel(root)
-    g_windowForImage.geometry("+750+250")  # Position at (500, 500)
+    g_windowForImage.geometry("+750+250")  # Position at (750, 250)
     label = tk.Label(g_windowForImage)
 
     return label
@@ -72,14 +72,7 @@ for file in historyFiles:
         #remove from the list
         imagesToDisplay.append(file)
         
-'''
-newFileName = "./history/image1.png"
-secondFileName = "./history/image2.png"
 
-image = Image.open(newFileName)
-image.show()
-
-''' 
 #Experimenting with control of the image display window
 
 label = create_window()
