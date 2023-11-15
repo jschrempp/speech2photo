@@ -5,11 +5,13 @@ from PIL import ImageTk, Image
 import os
 import threading
 from queue import Queue
+import random
 
 
 # Global reference to the window
 g_windowForImage = None
-label = None
+#label = None
+
 def create_window():
 
     global g_windowForImage
@@ -18,11 +20,14 @@ def create_window():
     root.withdraw()  # Hide the root window
     g_windowForImage = tk.Toplevel(root)
     g_windowForImage.geometry("+750+250")  # Position at (500, 500)
+    label = tk.Label(g_windowForImage)
 
-def display_image(image_path):
+    return label
+
+def display_image(image_path, label=None):
 
     global g_windowForImage
-    global label
+    #global label
 
 
     # Open an image file
@@ -36,11 +41,13 @@ def display_image(image_path):
     # Convert the image to a PhotoImage
     img = ImageTk.PhotoImage(img)
     # Create a label and add the image to it
-    if label is None:
-        label = tk.Label(g_windowForImage)
+    #if label is None:
+        #label = tk.Label(g_windowForImage)
     label.configure(image=img)
     label.image = img  # Keep a reference to the image to prevent it from being garbage collected
     label.pack() # Show the label
+
+    return label
 
 def close_window():
 
@@ -51,30 +58,38 @@ def close_window():
         g_windowForImage = None
 
 
+# list all png files in the history folder
+historyFolder = "./history"
+historyFiles = os.listdir(historyFolder)
 
+#remove any non-png files from historyFiles
+imagesToDisplay = []
+for file in historyFiles:
+    if file.endswith(".png"):
+        #remove from the list
+        imagesToDisplay.append(file)
+        
+'''
 newFileName = "./history/image1.png"
 secondFileName = "./history/image2.png"
-'''
+
 image = Image.open(newFileName)
 image.show()
 
 ''' 
 #Experimenting with control of the image display window
 
-create_window()
+label = create_window()
 
-# create image display window in a new thread
-qImageDisplayControl = Queue()
-#displayThread = threading.Thread(target=displayWindow.display_image, args=(qImageDisplayControl,newFileName),daemon=True)
-#displayThread.start()
-
-display_image(newFileName)
+#display_image(newFileName, label)
 runLoop = True
 while runLoop:
+    #display the image
+    random.shuffle(imagesToDisplay)
+    display_image('./history/' + imagesToDisplay[0], label)
     g_windowForImage.update_idletasks()
     g_windowForImage.update()
     time.sleep(3)
-    display_image(secondFileName)
 
 
 # When it's time to display the image:
