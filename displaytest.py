@@ -7,18 +7,36 @@ import threading
 from queue import Queue
 import random
 
+# Instructions text
+instructions = ('\r\n\nWelcome to the experiment. \n\r When you are ready, press the red button' 
++ ' and hold it down while you speak your instructions. Then release the button and wait.'
++ ' An image will appear shortly.')
 
 # Global reference to the window
 g_windowForImage = None
-#label = None
+g_windowForInstructions = None
 
-def create_window():
+def create_instructions_window():
+
+    global g_windowForInstructions
+
+    g_windowForInstructions = tk.Toplevel(root)
+    g_windowForInstructions.title("Instructions")
+    g_windowForInstructions.geometry("500x500+150+250")  # Position at (150, 250)
+    label = tk.Label(g_windowForInstructions, text=instructions, 
+                     font=("Helvetica", 32),
+                     justify=tk.CENTER,
+                     width=80,
+                     wraplength=400,
+                     )
+    label.pack()
+
+def create_image_window():
 
     global g_windowForImage
-    # create image display window
-    root = tk.Tk()
-    root.withdraw()  # Hide the root window
+
     g_windowForImage = tk.Toplevel(root)
+    g_windowForImage.title("Images")
     g_windowForImage.geometry("+750+250")  # Position at (750, 250)
     label = tk.Label(g_windowForImage)
 
@@ -27,8 +45,6 @@ def create_window():
 def display_image(image_path, label=None):
 
     global g_windowForImage
-    #global label
-
 
     # Open an image file
     try:
@@ -43,16 +59,13 @@ def display_image(image_path, label=None):
 
     # Convert the image to a PhotoImage
     photoImage = ImageTk.PhotoImage(img)
-    # Create a label and add the image to it
-    #if label is None:
-        #label = tk.Label(g_windowForImage)
     label.configure(image=photoImage)
     label.image = photoImage  # Keep a reference to the image to prevent it from being garbage collected
     label.pack() # Show the label
 
     return label
 
-def close_window():
+def close_image_window():
 
     global g_windowForImage
 
@@ -60,6 +73,14 @@ def close_window():
         g_windowForImage.destroy()
         g_windowForImage = None
 
+
+# ------------------ Main Program --------------------
+
+# create root window and hide it
+root = tk.Tk()
+root.withdraw()  # Hide the root window
+
+create_instructions_window()
 
 # list all png files in the history folder
 historyFolder = "./history"
@@ -75,14 +96,16 @@ for file in historyFiles:
 
 #Experimenting with control of the image display window
 
-label = create_window()
+label = create_image_window()
 
 #display_image(newFileName, label)
 runLoop = True
 while runLoop:
     #display the image
     random.shuffle(imagesToDisplay)
-    display_image('./history/' + imagesToDisplay[0], label)
+    imagePath = './history/' + imagesToDisplay[0]
+    print("Image displayed" + imagePath)
+    display_image(imagePath, label)
     g_windowForImage.update_idletasks()
     g_windowForImage.update()
     time.sleep(3)
@@ -95,4 +118,4 @@ print("Image displayed")
 time.sleep(10)
 print("Image closed")
 # When it's time to close the window:
-close_window()
+close_image_window()
