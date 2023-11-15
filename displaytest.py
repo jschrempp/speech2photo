@@ -37,14 +37,17 @@ def display_image(image_path, label=None):
         print("Error opening image file")
         print(e)
         return
-    
+
+    #resize the image to fit the window
+    img = img.resize((800, 850), Image.NEAREST)
+
     # Convert the image to a PhotoImage
-    img = ImageTk.PhotoImage(img)
+    photoImage = ImageTk.PhotoImage(img)
     # Create a label and add the image to it
     #if label is None:
         #label = tk.Label(g_windowForImage)
-    label.configure(image=img)
-    label.image = img  # Keep a reference to the image to prevent it from being garbage collected
+    label.configure(image=photoImage)
+    label.image = photoImage  # Keep a reference to the image to prevent it from being garbage collected
     label.pack() # Show the label
 
     return label
