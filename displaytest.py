@@ -8,9 +8,16 @@ from queue import Queue
 import random
 
 # Instructions text
+'''
 instructions = ('\r\n\nWelcome to the experiment. \n\r When you are ready, press the red button' 
 + ' and hold it down while you speak your instructions. Then release the button and wait.'
 + ' An image will appear shortly.')
+'''
+
+instructions = ('\r\n\nWelcome to the experiment. \n\r When you are ready, press and realease the'
+                + ' red button. You will have 10 seconds to speak your instructions. Then wait.'
+                + ' An image will appear shortly.'
+                + '\r\nUntil then, enjoy some previous images.')
 
 # Global reference to the window
 g_windowForImage = None
@@ -110,7 +117,7 @@ while runLoop:
     #display the image
     random.shuffle(imagesToDisplay)
     imagePath = './history/' + imagesToDisplay[0]
-    print("Image displayed" + imagePath)
+    #print("Image displayed" + imagePath)
     display_image(imagePath, label)
     g_windowForImage.update_idletasks()
     g_windowForImage.update()
