@@ -20,14 +20,16 @@ def create_instructions_window():
 
     global g_windowForInstructions
 
-    g_windowForInstructions = tk.Toplevel(root)
+    g_windowForInstructions = tk.Toplevel(root, bg='#52837D')
     g_windowForInstructions.title("Instructions")
-    g_windowForInstructions.geometry("500x500+150+250")  # Position at (150, 250)
+    g_windowForInstructions.geometry("500x500+50+0")  # Position at (150, 250)
     label = tk.Label(g_windowForInstructions, text=instructions, 
                      font=("Helvetica", 32),
                      justify=tk.CENTER,
                      width=80,
                      wraplength=400,
+                     bg='#52837D',
+                     fg='#FFFFFF',
                      )
     label.pack()
 
@@ -37,7 +39,9 @@ def create_image_window():
 
     g_windowForImage = tk.Toplevel(root)
     g_windowForImage.title("Images")
-    g_windowForImage.geometry("+750+250")  # Position at (750, 250)
+    screen_width = g_windowForImage.winfo_screenwidth()
+    screen_height = g_windowForImage.winfo_screenheight()
+    g_windowForImage.geometry("+%d+%d" % (screen_width-1000, screen_height*.1))
     label = tk.Label(g_windowForImage)
 
     return label
