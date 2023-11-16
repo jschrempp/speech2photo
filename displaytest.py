@@ -22,7 +22,6 @@ def create_instructions_window():
 
     g_windowForInstructions = tk.Toplevel(root, bg='#52837D')
     g_windowForInstructions.title("Instructions")
-    g_windowForInstructions.geometry("500x500+50+0")  # Position at (150, 250)
     label = tk.Label(g_windowForInstructions, text=instructions, 
                      font=("Helvetica", 32),
                      justify=tk.CENTER,
@@ -31,6 +30,9 @@ def create_instructions_window():
                      bg='#52837D',
                      fg='#FFFFFF',
                      )
+    g_windowForInstructions.minsize(200, 500)
+    g_windowForInstructions.maxsize(500, 1000)
+    g_windowForInstructions.geometry("+50+0") 
     label.pack()
 
 def create_image_window():
