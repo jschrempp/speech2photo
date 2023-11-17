@@ -103,13 +103,15 @@ import time
 import shutil
 import re
 import os
-import json 
+import random
+import tkinter as tk
+from enum import IntEnum
+from PIL import Image, ImageDraw, ImageFont, ImageTk
+
 import openai
 from openai import OpenAI
 
-client = OpenAI() 
-from enum import IntEnum
-from PIL import Image, ImageDraw, ImageFont
+client = OpenAI()  # must have set up your key in the shell as noted in comments above
 
 logger = logging.getLogger(__name__) # parameter: -d 1
 loggerTrace = logging.getLogger("Prompts") # parameter: -d 2
@@ -141,6 +143,18 @@ duration = 120
 # Set the number of times to loop when in auto mode
 loopsMax = 10
 
+# Instructions text
+'''
+instructions = ('\r\n\nWelcome to the experiment. \n\r When you are ready, press the red button' 
++ ' and hold it down while you speak your instructions. Then release the button and wait.'
++ ' An image will appear shortly.')
+'''
+
+instructions = ('\r\n\nWelcome to the experiment. \n\r When you are ready, press and realease the'
+                + ' red button. You will have 10 seconds to speak your instructions. Then wait.'
+                + ' An image will appear shortly.'
+                + '\r\nUntil then, enjoy some previous images.')
+
 # Prompt for abstraction
 promptForAbstraction = "What is the most interesting concept in the following text \
     expressing the answer as a noun phrase, but not in a full sentence "
@@ -161,6 +175,10 @@ imageModifiersMedium = [
                     "vivid color",
                     "photograph",
                     ]
+
+# Global reference to the window
+g_windowForImage = None
+g_windowForInstructions = None
 
 # Define  constants for blinking the LED (onTime, offTime)
 constBlinkFast = (0.1, 0.1)
@@ -255,7 +273,9 @@ def changeBlinkRate(blinkRate):
     else:
         # not running on RPI so do nothing
         pass
-                                
+
+
+
 # ----------------------
 # record duration seconds of audio from the default microphone to a file and return the sound file name
 #
@@ -553,44 +573,68 @@ def generateErrorImage(e, timestr):
 
     return newFileName
 
-'''
-#early experimental code follows
+def create_instructions_window():
 
-import tkinter as tk
-from PIL import ImageTk, Image
-import os
+    global g_windowForInstructions
 
-# Global reference to the window
-g_windowForImage = None
-
-def create_window(image_path):
-    global g_windowForImage
-    g_windowForImage = tk.Toplevel(root)
-    g_windowForImage.geometry("+500+500")  # Position at (500, 500)
-
-    # Open an image file
-    img = Image.open(image_path)
-    # Convert the image to a PhotoImage
-    img = ImageTk.PhotoImage(img)
-    # Create a label and add the image to it
-    label = tk.Label(g_windowForImage, image=img)
-    label.image = img  # Keep a reference to the image to prevent it from being garbage collected
+    g_windowForInstructions = tk.Toplevel(root, bg='#52837D')
+    g_windowForInstructions.title("Instructions")
+    label = tk.Label(g_windowForInstructions, text=instructions, 
+                     font=("Helvetica", 32),
+                     justify=tk.CENTER,
+                     width=80,
+                     wraplength=400,
+                     bg='#52837D',
+                     fg='#FFFFFF',
+                     )
+    g_windowForInstructions.minsize(200, 500)
+    g_windowForInstructions.maxsize(500, 1000)
+    g_windowForInstructions.geometry("+50+0") 
     label.pack()
 
-def close_window():
+def create_image_window():
+
     global g_windowForImage
+
+    g_windowForImage = tk.Toplevel(root)
+    g_windowForImage.title("Images")
+    screen_width = g_windowForImage.winfo_screenwidth()
+    screen_height = g_windowForImage.winfo_screenheight()
+    g_windowForImage.geometry("+%d+%d" % (screen_width-1000, screen_height*.1))
+    label = tk.Label(g_windowForImage)
+
+    return label
+
+def display_image(image_path, label=None):
+
+    global g_windowForImage
+
+    # Open an image file
+    try:
+        img = Image.open(image_path)
+    except Exception as e:
+        print("Error opening image file")
+        print(e)
+        return
+
+    #resize the image to fit the window
+    img = img.resize((800, 850), Image.NEAREST)
+
+    # Convert the image to a PhotoImage
+    photoImage = ImageTk.PhotoImage(img)
+    label.configure(image=photoImage)
+    label.image = photoImage  # Keep a reference to the image to prevent it from being garbage collected
+    label.pack() # Show the label
+
+    return label
+
+def close_image_window():
+
+    global g_windowForImage
+
     if g_windowForImage is not None:
         g_windowForImage.destroy()
         g_windowForImage = None
-
-# create image display window
-root = tk.Tk()
-#root.withdraw()  # Hide the root window
-
-
-
-#end of early experimental code
-'''
 
 
 
@@ -612,17 +656,16 @@ class processStep(IntEnum):
 # set up logging
 logging.basicConfig(level=logging.WARNING, format=' %(asctime)s - %(levelname)s - %(message)s')
 
-# set the OpenAI API key
-#raise Exception("The 'openai.api_key_path' option isn't read in the client API. 
-# You will need to pass it when you instantiate the client, 
-# e.g. 'OpenAI(api_key_path='creepy photo secret key')'")
+# create root window for display and hide it
+root = tk.Tk()
+root.withdraw()  # Hide the root window
 
-'''Traceback (most recent call last):
-  File "/Users/jschrempp/Documents/devschrempp/GitHub/jschrempp.speech2picture/pyspeech.py", line 97, in <module>
-    client = OpenAI(api_key_path='creepy photo secret key')
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TypeError: OpenAI.__init__() got an unexpected keyword argument 'api_key_path'
-'''
+if not g_isMacOS:
+    #Show instructions
+    create_instructions_window()
+
+# create the window to display the images
+labelForImageDisplay = create_image_window()
 
 # check for running over ssl to a remote machine
 isOverRemoteSSL = False
@@ -697,6 +740,7 @@ g_abortThisIteration = False
 
 done = False  # set to true to exit the loop
 loopDelay = 60 # delay between loops in seconds
+randomDisplayMode = False
 
 while not done:
 
@@ -744,7 +788,9 @@ while not done:
             firstProcessStep = processStep.Audio
 
         if g_isUsingHardwareButtons:
+            # we're not going to prompt the user for input again, rely on hardware buttons
             isButtonPressed = False
+            lastButttonPressedTime = 0
             while not isButtonPressed:
                 # running on RPi
                 # read gpio pin, if pressed, then do a cycle of keyword input
@@ -752,6 +798,30 @@ while not done:
                     g_isAudioKeywords = True
                     numLoops = 1
                     isButtonPressed = True
+                    lastButttonPressedTime = time.time()
+                    randomDisplayMode = False
+                else:
+                    # if the last button press was more than 60 seconds ago, then display history
+                    if time.time() - lastButttonPressedTime > 60 and not randomDisplayMode:
+                        lastImageDisplayedTime = time.time()
+                        randomDisplayMode = True # stay in this mode until the button is pressed again
+
+                        # list all files in the history folder
+                        historyFolder = "./history"
+                        historyFiles = os.listdir(historyFolder)
+                        #remove any non-png files from historyFiles
+                        imagesToDisplay = []
+                        for file in historyFiles:
+                            if file.endswith(".png"):
+                                #add to the list
+                                imagesToDisplay.append(file)
+
+                    if randomDisplayMode:
+                        if time.time() - lastImageDisplayedTime > 15:
+                            lastImageDisplayedTime = time.time()
+                            random.shuffle(imagesToDisplay) # randomize the list
+                            display_image(historyFolder + "/" + imagesToDisplay[0], labelForImageDisplay)
+                            
 
         if g_isAudioKeywords:
             # we are not going to extract keywords from the transcript
@@ -918,19 +988,12 @@ while not done:
             logger.info("Displaying image...")
 
             # display the image with pillow
-            image = Image.open(newFileName)
-            image.show()
+            #image = Image.open(newFileName)
+            #image.show()
 
-            ''' Experimenting with control of the image display window
-            # When it's time to display the image:
-            create_window(newFileName)
-
-            # delay 10 seconds 
-            time.sleep(10)
-
-            # When it's time to close the window:
-            close_window()
-            '''
+            display_image(newFileName, labelForImageDisplay)
+            g_windowForImage.update_idletasks()
+            g_windowForImage.update()
             
             changeBlinkRate(constBlinkStop)
 
@@ -940,12 +1003,17 @@ while not done:
         if firstProcessStep > processStep.Audio or args.wav != 0:
             # We've done one and we're all done
             done = True
+            time.sleep(20)   # persist the image display for 20 seconds
         else:
             #delay before the next for loop iteration
             if not g_isUsingHardwareButtons:
                 print("delaying " + str(loopDelay) + " seconds...")
                 time.sleep(loopDelay)
-            
+
+        # let the tkinter window events happen
+        g_windowForImage.update_idletasks()
+        g_windowForImage.update()
+         
         # end of loop
 
 # all done
