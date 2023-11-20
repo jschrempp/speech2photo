@@ -1,10 +1,15 @@
+# On RPi put this file in the folder
+#   /home/<<your user name>>/.config/autostart
+# be sure it has execute everyone permission
+# You may have to create the autostart folder
+
 [Desktop Entry]
-Name=speech2picture
+Name=s2pautostart
 Type=Application
 Comment=Speech Picture
 Categories=Application
-Path=
-Exec=bash ./s2p
+Path=/home/jbs
+Exec=lxterminal -e "bash /home/jbs/s2p.sh"
 Terminal=true
 StartupNotify=false
 X-KeepTerminal=true
