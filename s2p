@@ -1,0 +1,7 @@
+# script to make running the speech2picture program easier
+cd ~
+pwd
+source ~/.bashrc
+source /home/jbs/.venv/bin/activate
+cd speech2picture
+python pyspeech.py -o

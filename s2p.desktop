@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=speech2picture
+Type=Application
+Comment=Speech Picture
+Categories=Application
+Path=
+Exec=bash ./s2p
+Terminal=true
+StartupNotify=false
+X-KeepTerminal=true
