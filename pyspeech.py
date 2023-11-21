@@ -740,7 +740,11 @@ g_abortThisIteration = False
 
 done = False  # set to true to exit the loop
 loopDelay = 60 # delay between loops in seconds
-randomDisplayMode = False
+
+randomDisplayMode = True 
+
+lastButttonPressedTime = 0
+lastImageDisplayedTime = 0
 
 while not done:
 
@@ -790,7 +794,9 @@ while not done:
         if g_isUsingHardwareButtons:
             # we're not going to prompt the user for input again, rely on hardware buttons
             isButtonPressed = False
-            lastButttonPressedTime = 0
+
+
+
             while not isButtonPressed:
                 # running on RPi
                 # read gpio pin, if pressed, then do a cycle of keyword input
@@ -806,7 +812,7 @@ while not done:
                         print ("switching to random display mode")
                         lastImageDisplayedTime = time.time()
                         randomDisplayMode = True # stay in this mode until the button is pressed again
-                        lastImageDisplayedTime = time.time() # initialize this
+                        lastImageDisplayedTime = 0 # should display a picture immediately
 
                         # list all files in the history folder
                         historyFolder = "./history"
