@@ -798,7 +798,7 @@ while not done:
                     g_isAudioKeywords = True
                     numLoops = 1
                     isButtonPressed = True
-                    lastButttonPressedTime = time.time()
+                    lastButtonPressedTime = time.time()
                     randomDisplayMode = False
                 else:
                     # if the last button press was more than 60 seconds ago, then display history
@@ -806,6 +806,7 @@ while not done:
                         print ("switching to random display mode")
                         lastImageDisplayedTime = time.time()
                         randomDisplayMode = True # stay in this mode until the button is pressed again
+                        lastImageDisplayedTime = time.time() # initialize this
 
                         # list all files in the history folder
                         historyFolder = "./history"
