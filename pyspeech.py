@@ -609,8 +609,6 @@ def display_image(image_path, label=None):
 
     global g_windowForImage
 
-    print("display_image: " + image_path)
-
     if label is None:
         print("Error: label is None")  
         return
@@ -833,10 +831,13 @@ while not done:
                                 if file.endswith(".png"):
                                     #add to the list
                                     imagesToDisplay.append(file)
-                            print("image list length: " + str(len(imagesToDisplay)))  
                             lastImageDisplayedTime = time.time()
                             random.shuffle(imagesToDisplay) # randomize the list
                             display_image(historyFolder + "/" + imagesToDisplay[0], labelForImageDisplay)
+                            
+                            # let the tkinter window events happen
+                            g_windowForImage.update_idletasks()
+                            g_windowForImage.update()
                             
 
         if g_isAudioKeywords:
