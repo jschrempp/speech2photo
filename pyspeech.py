@@ -609,6 +609,10 @@ def display_image(image_path, label=None):
 
     global g_windowForImage
 
+    if label is None:
+        print("Error: label is None")  
+        return
+
     # Open an image file
     try:
         img = Image.open(image_path)
