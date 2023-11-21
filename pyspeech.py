@@ -813,19 +813,21 @@ while not done:
                         lastImageDisplayedTime = time.time()
                         randomDisplayMode = True # stay in this mode until the button is pressed again
                         lastImageDisplayedTime = 0 # should display a picture immediately
-
-                        # list all files in the history folder
-                        historyFolder = "./history"
-                        historyFiles = os.listdir(historyFolder)
-                        #remove any non-png files from historyFiles
-                        imagesToDisplay = []
-                        for file in historyFiles:
-                            if file.endswith(".png"):
-                                #add to the list
-                                imagesToDisplay.append(file)
-
+                        
                     if randomDisplayMode:
+
                         if time.time() - lastImageDisplayedTime > 15:
+
+                            # list all files in the history folder
+                            historyFolder = "./history"
+                            historyFiles = os.listdir(historyFolder)
+                            #remove any non-png files from historyFiles
+                            imagesToDisplay = []
+                            for file in historyFiles:
+                                if file.endswith(".png"):
+                                    #add to the list
+                                    imagesToDisplay.append(file)
+
                             lastImageDisplayedTime = time.time()
                             random.shuffle(imagesToDisplay) # randomize the list
                             display_image(historyFolder + "/" + imagesToDisplay[0], labelForImageDisplay)
