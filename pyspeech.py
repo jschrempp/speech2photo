@@ -827,7 +827,7 @@ while not done:
                                 if file.endswith(".png"):
                                     #add to the list
                                     imagesToDisplay.append(file)
-
+                            print("image list length: " + str(len(imagesToDisplay)))  
                             lastImageDisplayedTime = time.time()
                             random.shuffle(imagesToDisplay) # randomize the list
                             display_image(historyFolder + "/" + imagesToDisplay[0], labelForImageDisplay)
