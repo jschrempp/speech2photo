@@ -609,6 +609,8 @@ def display_image(image_path, label=None):
 
     global g_windowForImage
 
+    print("display_image: " + image_path)
+
     if label is None:
         print("Error: label is None")  
         return
