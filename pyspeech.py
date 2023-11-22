@@ -809,7 +809,7 @@ while not done:
                     numLoops = 1
                     isButtonPressed = True
                     lastButtonPressedTime = time.time()
-                    print("stop random displa " + str(lastButttonPressedTime)
+                    print("stop random display " + str(lastButttonPressedTime))
                     randomDisplayMode = False
 
                 else:
