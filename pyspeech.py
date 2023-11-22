@@ -747,7 +747,7 @@ loopDelay = 60 # delay between loops in seconds
 
 randomDisplayMode = True 
 
-lastButttonPressedTime = 0
+lastButtonPressedTime = 0
 lastImageDisplayedTime = 0
 
 while not done:
@@ -809,13 +809,13 @@ while not done:
                     numLoops = 1
                     isButtonPressed = True
                     lastButtonPressedTime = time.time()
-                    print("stop random display " + str(lastButttonPressedTime))
+                    # print("stop random display " + str(lastButtonPressedTime))
                     randomDisplayMode = False
 
                 else:
                     # if the last button press was more than 60 seconds ago, then display history
-                    if (time.time() - lastButttonPressedTime > 60) and (not randomDisplayMode):
-                        print ("start random display " + str(time.time()) + str(lastButttonPressedTime))
+                    if (time.time() - lastButtonPressedTime > 60) and (not randomDisplayMode):
+                        # print ("start random display " + str(time.time()) + " " + str(lastButtonPressedTime))
                         lastImageDisplayedTime = time.time()
                         randomDisplayMode = True # stay in this mode until the button is pressed again
                         lastImageDisplayedTime = 0 # should display a picture immediately
