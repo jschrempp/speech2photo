@@ -812,7 +812,7 @@ while not done:
                     randomDisplayMode = False
                 else:
                     # if the last button press was more than 60 seconds ago, then display history
-                    if time.time() - lastButttonPressedTime > 60 and not randomDisplayMode:
+                    if (time.time() - lastButttonPressedTime > 60) and (not randomDisplayMode):
                         print ("switching to random display mode")
                         lastImageDisplayedTime = time.time()
                         randomDisplayMode = True # stay in this mode until the button is pressed again
