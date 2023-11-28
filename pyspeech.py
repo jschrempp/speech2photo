@@ -699,6 +699,7 @@ parser.add_argument("-T", "--summary", help="use summary from file", type=str, d
 parser.add_argument("-k", "--keywords", help="use keywords from file", type=str, default=0) # optional argument
 parser.add_argument("-i", "--image", help="use image from file", type=str, default=0) # optional argument
 parser.add_argument("-o", "--onlykeywords", help="use audio directly without extracting keywords", action="store_true") # optional argument
+parser.add_argument("-g", "--gokiosk", help="jump into Kiosk mode", action="store_true") # optional argument
 args = parser.parse_args()
 
 # set the debug level
@@ -713,27 +714,37 @@ elif args.debug == 2:
     logger.debug("Debug level set to show prompts and response JSON")
 
 
-# if we're given a file via the command line then start at that step
-# check in reverse order so that processStartStep will be the latest step for any set of arguments
-firstProcessStep = processStep.NoneSpecified
-if args.image != 0: 
-    firstProcessStep = processStep.Image
-elif args.keywords != 0: 
-    firstProcessStep = processStep.Keywords
-elif args.summary != 0: 
-    firstProcessStep = processStep.Summarize
-elif args.transcript != 0: 
-    firstProcessStep  = processStep.Transcribe
-elif args.wav != 0:
-    firstProcessStep = processStep.Audio
-
-# if set, then record only 10 seconds of audio and use that for the keywords
-g_isAudioKeywords = False
-if args.onlykeywords:
-    g_isAudioKeywords = True
-
 # if true, don't ask user for input, rely on hardware buttons
 g_isUsingHardwareButtons = False
+
+if args.gokiosk:
+    # jump into Kiosk mode
+    print("\r\nKiosk mode enabled")
+    g_isUsingHardwareButtons = True
+    g_isAudioKeywords = True
+    numLoops = 1
+    loopDelay = 0
+    firstProcessStep = processStep.Audio
+else:
+    # if we're given a file via the command line then start at that step
+    # check in reverse order so that processStartStep will be the latest step for any set of arguments
+    firstProcessStep = processStep.NoneSpecified
+    if args.image != 0: 
+        firstProcessStep = processStep.Image
+    elif args.keywords != 0: 
+        firstProcessStep = processStep.Keywords
+    elif args.summary != 0: 
+        firstProcessStep = processStep.Summarize
+    elif args.transcript != 0: 
+        firstProcessStep  = processStep.Transcribe
+    elif args.wav != 0:
+        firstProcessStep = processStep.Audio
+
+    # if set, then record only 10 seconds of audio and use that for the keywords
+    g_isAudioKeywords = False
+    if args.onlykeywords:
+        g_isAudioKeywords = True
+
 
 # if true, we had an error and want to just go back to the top of the loop
 g_abortThisIteration = False
@@ -761,6 +772,7 @@ while not done:
     else:
         # no command line input parameters so prompt the user for a command
 
+        inputCommand = ""
         if not g_isUsingHardwareButtons: 
             # print menu
             print("\r\n\n\n")
