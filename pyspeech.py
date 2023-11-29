@@ -42,25 +42,47 @@ Based on the WhisperFrame project idea on Hackaday.
 https://hackaday.com/2023/09/22/whisperframe-depicts-the-art-of-conversation/
 
 Specific to Raspberry Pi:
+    0. clone repo
+       git clone https://github.com/jschrempp/speech2picture.git speech2picture
+
     1. set up a virtual environment and activate it (to deactive use "deactivate")
+        cd speech2picture
         python3 -m venv .venv
         source .venv/bin/activate
 
         set your openai key
             https://help.openai.com/en/articles/5112595-best-practices-for-api-key-safety
-                echo "export OPENAI_API_KEY='yourkey'" >> ~/.zshrc
-                source ~/.zshrc
-                echo $OPENAI_API_KEY  # to verify
-                hmmm, we don't do this yet it works ... openai.api_key = os.environ["OPENAI_API_KEY"]
-    
+
+            nano ~/.bashrc and comment out these lines
+                # If not running interactively, don't do anything
+                case $- in
+                    *i*) ;;
+                    *) return;;
+                esac
+
+            Then add this line
+                export OPENAI_API_KEY='yourkey'
+
+            Check your work
+                source ~/.bashrc
+                echo $OPENAI_API_KEY
+
     2. install the following packages
 
         2a. for RPi version 3 install these
             sudo apt-get install portaudio19-dev
-            sudo apt-get install libasound2-dev
-            sudo apt-get install libatlas-base-dev
-            sudo apt-get install libopenblas-dev
-            # sudo apt-get install feh
+            On the latest RPi software you don't need to install these
+            #sudo apt-get install libasound2-dev
+            #sudo apt-get install libatlas-base-dev
+            #sudo apt-get install libopenblas-dev
+
+            cp s2p.desktop ~/Desktop
+
+            cd ..
+            mkdir .config/lxsession
+            mkdir .config/lxsession/LXDE-pi
+            mkdir .config/lxsession/LXDE-pi/autostart
+            cp Desktop/s2p.desktop .config/lxsession/LXDE-pi/autostart/s2p.desktop
 
         2b. on MacOS install these
             brew install portaudio
@@ -145,15 +167,15 @@ loopsMax = 10
 
 # Instructions text
 '''
-instructions = ('\r\n\nWelcome to the experiment. \n\r When you are ready, press the red button' 
+instructions = ('\r\n\nWelcome to the experiment. \n\r When you are ready, press the button' 
 + ' and hold it down while you speak your instructions. Then release the button and wait.'
 + ' An image will appear shortly.')
 '''
 
-instructions = ('\r\n\nWelcome to the experiment. \n\r When you are ready, press and realease the'
-                + ' red button. You will have 10 seconds to speak your instructions. Then wait.'
+instructions = ('\r\n\nWelcome to the experiment. \n\r When you are ready, press and release the'
+                + ' button. You will have 10 seconds to speak your instructions. Then wait.'
                 + ' An image will appear shortly.'
-                + '\r\nUntil then, enjoy some previous images.')
+                + '\r\nUntil then, enjoy some previous images!')
 
 # Prompt for abstraction
 promptForAbstraction = "What is the most interesting concept in the following text \
