@@ -5,8 +5,13 @@
 # raspbian 2023-10-10 64 bit
 #   sudo cp /home/<<your user name>>/speech2picture/s2p.desktop /usr/share/xsessions/
 # be sure it has execute everyone permission
-# 
+#
+# in the RPi world things might change for autostart. This is a good reference.
+# https://forums.raspberrypi.com/viewtopic.php?t=294014 
+#
 # On RPi if using hardware button always, then modify s2p.sh to have the -g command line option
+#
+# 
 
 [Desktop Entry]
 Name=s2pautostart
