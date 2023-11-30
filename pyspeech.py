@@ -71,7 +71,7 @@ Specific to Raspberry Pi:
 
         2a. for RPi version 3 install these
             sudo apt-get install portaudio19-dev
-            On the latest RPi software you don't need to install these
+            On the 2023-10-10 64 bit Raspbian OS you don't need to install these
             #sudo apt-get install libasound2-dev
             #sudo apt-get install libatlas-base-dev
             #sudo apt-get install libopenblas-dev
@@ -97,7 +97,7 @@ Specific to Raspberry Pi:
 
                     
     3. install the following python packages    
-        pip install openai # --upgrade
+        pip install openai 
         pip install pillow
         pip install pyaudio
         pip install RPi.GPIO
@@ -110,6 +110,7 @@ Specific to Raspberry Pi:
     
 Author: Jim Schrempp 2023 
 
+v 0.6 added -g for gokiosk mode
 v 0.5 Initial version
 v 0.6 2023-11-12 inverted Go Button logic so it is active low (pulled to ground)
 v 0.7 updated to python 3.12 and openAI 1.0.0 (wow that was a pain)
@@ -741,7 +742,7 @@ g_isUsingHardwareButtons = False
 
 if args.gokiosk:
     # jump into Kiosk mode
-    print("\r\nKiosk mode enabled")
+    print("\r\nKiosk mode enabled\r\n")
     g_isUsingHardwareButtons = True
     g_isAudioKeywords = True
     numLoops = 1
@@ -847,8 +848,8 @@ while not done:
                     randomDisplayMode = False
 
                 else:
-                    # if the last button press was more than 60 seconds ago, then display history
-                    if (time.time() - lastButtonPressedTime > 60) and (not randomDisplayMode):
+                    # if the last button press was more than 90 seconds ago, then display history
+                    if (time.time() - lastButtonPressedTime > 90) and (not randomDisplayMode):
                         # print ("start random display " + str(time.time()) + " " + str(lastButtonPressedTime))
                         lastImageDisplayedTime = time.time()
                         randomDisplayMode = True # stay in this mode until the button is pressed again
