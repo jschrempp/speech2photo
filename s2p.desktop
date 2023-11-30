@@ -1,7 +1,9 @@
-# On RPi put this file in the folder
-#   /home/<<your user name>>/.config/autostart
+# On RPi put this file in the folder for autostart
+# raspbian 2023-10-10 64 bit
+#   sudo cp /home/<<your user name>>/speech2picture/s2p.desktop /usr/share/xsessions/
 # be sure it has execute everyone permission
-# You may have to create the autostart folder
+# For testing, put this on your own desktop too
+#   cp /home/<<your user name>>/speech2picture/s2p.desktop /home/<<your user name>>/Desktop/s2p.desktop
 
 [Desktop Entry]
 Name=s2pautostart
@@ -9,7 +11,7 @@ Type=Application
 Comment=Speech Picture
 Categories=Application
 Path=/home/jbs
-Exec=lxterminal -e "bash /home/jbs/s2p.sh"
+Exec=lxterminal -e "bash /home/jbs/speech2picture/s2p.sh"
 Terminal=true
 StartupNotify=false
 X-KeepTerminal=true
