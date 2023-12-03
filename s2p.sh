@@ -1,4 +1,4 @@
-#!./bin/bash
+#!/bin/bash
 # script to make running the speech2picture program easier
 #
 # Also could be called by s2p.desktop shortcut
