@@ -107,6 +107,8 @@ Specific to Raspberry Pi:
 
     Also note that errors from the audio subsystem are ignored in recordAudioFromMicrophone(). If 
     you are having some real audio issue, you might change the error handler to print the errors.
+
+    If you want to make this run on boot, then see the comments in s2p.desktop
     
 Author: Jim Schrempp 2023 
 
