@@ -18,7 +18,9 @@ https://hackaday.com/2023/09/22/whisperframe-depicts-the-art-of-conversation/
 - delay for 60 seconds
 - repeat the process 10 times
 
-Runs on Mac OSX and Raspberry Pi. RPi has the option to trigger the process with a button.
+Runs on Mac OSX and Raspberry Pi. RPi has the option to trigger the process with a button. Includes
+"kiosk" mode so the RPi will boot into a running session, ready for a button press.
+
 See the header comments for how to set up your Python environment.
 
 Author: Jim Schrempp 2023 
@@ -38,6 +40,9 @@ Useful options:
    without any interpretation. Useful mostly for 10 second audio recording to let people speak
    a few words and get a picture from it. 
 
+-h Hardware ... Goes into a loop waiting for a button to be pressed (a pin to be pulled low)
+
 Command line options exist to let you pass in an existing file to one of the steps. For instance, if you want to experiment with how the final image files are displayed, -i <filename> will jump right to that step so you don't have to do all the previous steps.
 
-To run this you need to get an OpenAI API key and put it in a file called "creepy photo secret key"
+To run this you need to get an OpenAI API key and put it into an environment variable OPENAI_API_KEY. See more
+details in the comments at the top of the source file.
