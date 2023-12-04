@@ -249,7 +249,7 @@ if not g_isMacOS:
     GPIO.setup(LED_RED, GPIO.OUT, initial=GPIO.LOW)
     
     # Set up pin 10 as an input for the start button
-    GPIO.setup(BUTTON_GO, GPIO.IN, pull_up_down=g.buttonPullUpDown)
+    GPIO.setup(BUTTON_GO, GPIO.IN, pull_up_down=BUTTON_PULL_UP_DOWN)
 
     # Define a function to blink the LED
     # This function is run on a thread
