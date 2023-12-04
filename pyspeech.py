@@ -688,20 +688,418 @@ def close_image_window():
 
 
 
+def main():
+    # ----------------------
+    # main program starts here
+    #
+    #
+    #
 
-# ----------------------
-# main program starts here
-#
-#
-#
+    class processStep(IntEnum):
+        NoneSpecified = 0
+        Audio = 1
+        Transcribe = 2
+        Summarize = 3
+        Keywords = 4
+        Image = 5
 
-class processStep(IntEnum):
-    NoneSpecified = 0
-    Audio = 1
-    Transcribe = 2
-    Summarize = 3
-    Keywords = 4
-    Image = 5
+
+
+    if not g_isMacOS:
+        #Show instructions
+        create_instructions_window()
+
+    # create the window to display the images
+    labelForImageDisplay = create_image_window()
+
+    # check for running over ssl to a remote machine
+    isOverRemoteSSL = False
+    """
+    # this doesn't work. Running on RPi terminal it still says it is running over SSL
+    if ssl.OPENSSL_VERSION and platform.system() != "Darwin":
+        isOverRemoteSSL = True
+        print("Running over SSL to a remote machine")
+    else:
+        print("Not running over SSL to a remote machine")
+    """
+
+    # create a directory if one does not exist
+    if not os.path.exists("history"):
+        os.makedirs("history")
+
+
+
+
+    # parse the command line arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-s", "--savefiles", help="save the files", action="store_true") # optional argument
+    parser.add_argument("-d", "--debug", help="0:info, 1:prompts, 2:responses", type=int) # optional argument
+    parser.add_argument("-w", "--wav", help="use audio from file", type=str, default=0) # optional argument
+    parser.add_argument("-t", "--transcript", help="use transcript from file", type=str, default=0) # optional argument
+    parser.add_argument("-T", "--summary", help="use summary from file", type=str, default=0) # optional argument
+    parser.add_argument("-k", "--keywords", help="use keywords from file", type=str, default=0) # optional argument
+    parser.add_argument("-i", "--image", help="use image from file", type=str, default=0) # optional argument
+    parser.add_argument("-o", "--onlykeywords", help="use audio directly without extracting keywords", action="store_true") # optional argument
+    parser.add_argument("-g", "--gokiosk", help="jump into Kiosk mode", action="store_true") # optional argument
+    args = parser.parse_args()
+
+    # set the debug level
+    logger.setLevel(logging.INFO)
+
+    if args.debug == 1:
+        logger.setLevel(logging.DEBUG)
+        logger.debug("Debug level set to show prompts")
+    elif args.debug == 2:
+        logger.setLevel(logging.DEBUG)
+        loggerTrace.setLevel(logging.DEBUG)
+        logger.debug("Debug level set to show prompts and response JSON")
+
+
+    # if true, don't ask user for input, rely on hardware buttons
+    g.isUsingHardwareButtons = False
+
+    if args.gokiosk:
+        # jump into Kiosk mode
+        print("\r\nKiosk mode enabled\r\n")
+        g.isUsingHardwareButtons = True
+        g.isAudioKeywords = True
+        numLoops = 1
+        loopDelay = 0
+        firstProcessStep = processStep.Audio
+    else:
+        # if we're given a file via the command line then start at that step
+        # check in reverse order so that processStartStep will be the latest step for any set of arguments
+        firstProcessStep = processStep.NoneSpecified
+        if args.image != 0: 
+            firstProcessStep = processStep.Image
+        elif args.keywords != 0: 
+            firstProcessStep = processStep.Keywords
+        elif args.summary != 0: 
+            firstProcessStep = processStep.Summarize
+        elif args.transcript != 0: 
+            firstProcessStep  = processStep.Transcribe
+        elif args.wav != 0:
+            firstProcessStep = processStep.Audio
+
+        # if set, then record only 10 seconds of audio and use that for the keywords
+        g.isAudioKeywords = False
+        if args.onlykeywords:
+            g.isAudioKeywords = True
+            g.duration = 10
+
+
+    # if true, we had an error and want to just go back to the top of the loop
+    g.abortThisIteration = False
+
+    # ----------------------
+    # Main Loop 
+    #
+
+    done = False  # set to true to exit the loop
+    loopDelay = 60 # delay between loops in seconds
+
+    randomDisplayMode = True 
+
+    lastButtonPressedTime = 0
+    lastImageDisplayedTime = 0
+
+    while not done:
+
+        if firstProcessStep > processStep.Audio or args.wav != 0:
+
+            # we have file parameters, so only loop once
+            numLoops = 1
+            loopDelay = 1   # no delay if we're not looping XXX
+
+        else:
+            # no command line input parameters so prompt the user for a command
+
+            inputCommand = ""
+            if not g.isUsingHardwareButtons: 
+                # print menu
+                print("\r\n\n\n")
+                print("Commands:")
+                print("   o: Once, record and display; default")
+                print("   a: Auto mode, record, display, and loop")
+                if not g_isMacOS:
+                    # running on RPi
+                    print("   h: Hardware control")
+                print("   q: Quit")
+
+                # wait for the user to press a key
+                inputCommand = input("Type a command ...")
+
+            if inputCommand == 'h':
+                # not in the menu except on RPi
+                # don't ask the user for input again, rely on hardware buttons
+                g.isUsingHardwareButtons = True
+                print("\r\nHardware control enabled")
+
+            elif inputCommand == 'q': # quit
+                done = True
+                numLoops = 0
+                loopDelay = 0
+
+            elif inputCommand == 'a': # auto mode
+                numLoops = LOOPS_MAX
+                print("Will loop: " + str(numLoops) + " times")
+                
+            else: # default is once
+                numLoops = 1
+                loopDelay = 0
+                firstProcessStep = processStep.Audio
+
+            if g.isUsingHardwareButtons:
+                # we're not going to prompt the user for input again, rely on hardware buttons
+                isButtonPressed = False
+
+                while not isButtonPressed:
+                    # running on RPi
+                    # read gpio pin, if pressed, then do a cycle of keyword input
+                    if GPIO.input(BUTTON_GO) == BUTTON_PRESSED:
+                        g.isAudioKeywords = True
+                        numLoops = 1
+                        isButtonPressed = True
+                        lastButtonPressedTime = time.time()
+                        # print("stop random display " + str(lastButtonPressedTime))
+                        randomDisplayMode = False
+
+                    else:
+                        # if the last button press was more than 90 seconds ago, then display history
+                        if (time.time() - lastButtonPressedTime > 90) and (not randomDisplayMode):
+                            # print ("start random display " + str(time.time()) + " " + str(lastButtonPressedTime))
+                            lastImageDisplayedTime = time.time()
+                            randomDisplayMode = True # stay in this mode until the button is pressed again
+                            lastImageDisplayedTime = 0 # should display a picture immediately
+                            
+                        if randomDisplayMode:
+
+                            if time.time() - lastImageDisplayedTime > 15:
+
+                                # list all files in the history folder
+                                historyFolder = "./history"
+                                historyFiles = os.listdir(historyFolder)
+                                #remove any non-png files from historyFiles
+                                imagesToDisplay = []
+                                for file in historyFiles:
+                                    if file.endswith(".png"):
+                                        #add to the list
+                                        imagesToDisplay.append(file)
+                                lastImageDisplayedTime = time.time()
+                                random.shuffle(imagesToDisplay) # randomize the list
+                                display_image(historyFolder + "/" + imagesToDisplay[0], labelForImageDisplay)
+                                
+                                # let the tkinter window events happen
+                                g_windowForImage.update_idletasks()
+                                g_windowForImage.update()
+                                
+
+            if g.isAudioKeywords:
+                # we are not going to extract keywords from the transcript
+                duration = 10
+
+        # loop will normally process audio and display the images
+        # but if we're given a file then start at that step (processStep)
+        # and numLoops should be 1
+        for i in range(0, numLoops, 1):
+
+            g.abortThisIteration = False
+
+            # format a time string to use as a file name
+            timestr = time.strftime("%Y%m%d-%H%M%S")
+
+            soundFileName = ""
+            transcript = ""
+            summary = ""
+            keywords = ""
+            imageURLs = ""
+
+            # Audio - get a recording.wav file
+            if firstProcessStep <= processStep.Audio:
+
+                changeBlinkRate(BLINK_FOR_AUDIO_CAPTURE)
+
+                if args.wav == 0:
+                    # record audio from the default microphone
+                    soundFileName = recordAudioFromMicrophone()
+
+                    if args.savefiles:
+                        #copy the file to a new name with the time stamp
+                        shutil.copy(soundFileName, "history/" + timestr + "-recording" + ".wav")
+                        soundFileName = "history/" + timestr + "-recording" + ".wav"
+            
+                else:
+                    # use the file specified by the wav argument
+                    soundFileName = args.wav
+                    logger.info("Using audio file: " + args.wav)
+
+                changeBlinkRate(BLINK_STOP)
+        
+            # Transcribe - set transcript
+            if firstProcessStep <= processStep.Transcribe:
+            
+                changeBlinkRate(BLINK1)
+
+                if args.transcript == 0:
+                    # transcribe the recording
+                    transcript = getTranscript(soundFileName)
+
+                    if args.savefiles:
+                        f = open("history/" + timestr + "-rawtranscript" + ".txt", "w")
+                        f.write(transcript)
+                        f.close()
+                else:
+                    # use the text file specified 
+                    transcriptFile = open(args.transcript, "r")
+                    # read the transcript file
+                    transcript = transcriptFile.read()
+                    logger.info("Using transcript file: " + args.transcript)
+
+                changeBlinkRate(BLINK_STOP)
+
+            # Summary - set summary
+            if firstProcessStep <= processStep.Summarize:
+
+                """ Skip summarization for now
+                changeBlinkRate(BLINK2)
+
+                if args.summary == 0:
+                    # summarize the transcript
+                    summary = getSummary(transcript)
+
+                    if args.savefiles:
+                        f = open("history/" + timestr + "-summary" + ".txt", "w")
+                        f.write(summary)
+                        f.close()
+
+                else:
+                    # use the text file specified by the transcript argument
+                    summaryFile = open(summaryArg, "r")
+                    # read the summary file
+                    summary = summaryFile.read()
+                    logger.info("Using summary file: " + summaryArg)
+                
+                changeBlinkRate(BLINK_STOP)
+                """
+
+
+            # Keywords - set keywords
+            if firstProcessStep <= processStep.Keywords:
+
+                changeBlinkRate(BLINK3)
+
+                if not g.isAudioKeywords:
+
+                    if args.keywords == 0:
+                        # extract the keywords from the summary
+                        keywords = getAbstractForImageGen(transcript) 
+
+                        if args.savefiles:
+                            f = open("history/" + timestr + "-keywords" + ".txt", "w")
+                            f.write(keywords)
+                            f.close()
+
+                    else:
+                        # use the extract file specified by the extract argument
+                        summaryFile = open(args.keywords, "r")
+                        # read the summary file
+                        keywords = summaryFile.read()
+                        logger.info("Using abstract file: " + args.keywords)
+                    
+                else:
+                    # use the transcript as the keywords
+                    keywords = transcript
+
+                changeBlinkRate(BLINK_STOP)
+
+            # Image - set imageURL
+            if firstProcessStep <= processStep.Image:
+
+                changeBlinkRate(BLINK4)
+
+                if args.image == 0:
+
+                    # use the keywords to generate images
+                    try:
+                        imagesInfo = getImageURL(keywords)
+
+                        imageURLs = imagesInfo[0]
+                        imageArtist = imagesInfo[1]
+                        imageMedium = imagesInfo[2]   
+
+                        newFileName = postProcessImages(imageURLs, imageArtist, imageMedium, keywords, timestr)
+
+                        imageURLs = "file://" + os.getcwd() + "/" + newFileName
+                        logger.debug("imageURL: " + imageURLs)
+
+                    except Exception as e:
+
+                        print ("AI Image Error: " + str(e))
+
+                        newFileName = generateErrorImage(e, timestr)
+
+                        imageURLs = "file://" + os.getcwd() + "/" + newFileName
+                        logger.debug("Error Image Created: " + imageURLs)       
+                
+                else:
+                    imageURLs = [args.image]
+                    newFileName = args.image
+                    logger.info("Using image file: " + args.image )
+
+                changeBlinkRate(BLINK_STOP)
+                
+            # Display - display imageURL
+            
+            if isOverRemoteSSL:
+                # don't try to disply
+                print("Not displaying image because we're running over SSL")
+            else:
+                # display the image
+                changeBlinkRate(BLINK_SLOW)
+                logger.info("Displaying image...")
+
+                # display the image with pillow
+                #image = Image.open(newFileName)
+                #image.show()
+
+                display_image(newFileName, labelForImageDisplay)
+                g_windowForImage.update_idletasks()
+                g_windowForImage.update()
+                
+                changeBlinkRate(BLINK_STOP)
+
+            # The end of the for loop
+            changeBlinkRate(BLINK_STOP)
+            # are we running the command line file args?
+            if firstProcessStep > processStep.Audio or args.wav != 0:
+                # We've done one and we're all done
+                done = True
+                time.sleep(20)   # persist the image display for 20 seconds
+            else:
+                #delay before the next for loop iteration
+                if not g.isUsingHardwareButtons:
+                    print("delaying " + str(loopDelay) + " seconds...")
+                    time.sleep(loopDelay)
+
+            # let the tkinter window events happen
+            g_windowForImage.update_idletasks()
+            g_windowForImage.update()
+            
+            # end of loop
+
+    # all done
+    if not g_isMacOS:
+        # running on RPi
+        # Stop the LED thread
+        changeBlinkRate(BLINK_DIE)
+        led_thread1.join()
+
+        # Clean up the GPIO pins
+        GPIO.cleanup()
+
+    # exit the program
+    print("\r\n")
+
 
 # set up logging
 logging.basicConfig(level=logging.WARNING, format=' %(asctime)s - %(levelname)s - %(message)s')
@@ -710,400 +1108,7 @@ logging.basicConfig(level=logging.WARNING, format=' %(asctime)s - %(levelname)s 
 root = tk.Tk()
 root.withdraw()  # Hide the root window
 
-if not g_isMacOS:
-    #Show instructions
-    create_instructions_window()
-
-# create the window to display the images
-labelForImageDisplay = create_image_window()
-
-# check for running over ssl to a remote machine
-isOverRemoteSSL = False
-"""
-# this doesn't work. Running on RPi terminal it still says it is running over SSL
-if ssl.OPENSSL_VERSION and platform.system() != "Darwin":
-    isOverRemoteSSL = True
-    print("Running over SSL to a remote machine")
-else:
-    print("Not running over SSL to a remote machine")
-"""
-
-# create a directory if one does not exist
-if not os.path.exists("history"):
-    os.makedirs("history")
-
-
-
-
-# parse the command line arguments
-parser = argparse.ArgumentParser()
-parser.add_argument("-s", "--savefiles", help="save the files", action="store_true") # optional argument
-parser.add_argument("-d", "--debug", help="0:info, 1:prompts, 2:responses", type=int) # optional argument
-parser.add_argument("-w", "--wav", help="use audio from file", type=str, default=0) # optional argument
-parser.add_argument("-t", "--transcript", help="use transcript from file", type=str, default=0) # optional argument
-parser.add_argument("-T", "--summary", help="use summary from file", type=str, default=0) # optional argument
-parser.add_argument("-k", "--keywords", help="use keywords from file", type=str, default=0) # optional argument
-parser.add_argument("-i", "--image", help="use image from file", type=str, default=0) # optional argument
-parser.add_argument("-o", "--onlykeywords", help="use audio directly without extracting keywords", action="store_true") # optional argument
-parser.add_argument("-g", "--gokiosk", help="jump into Kiosk mode", action="store_true") # optional argument
-args = parser.parse_args()
-
-# set the debug level
-logger.setLevel(logging.INFO)
-
-if args.debug == 1:
-    logger.setLevel(logging.DEBUG)
-    logger.debug("Debug level set to show prompts")
-elif args.debug == 2:
-    logger.setLevel(logging.DEBUG)
-    loggerTrace.setLevel(logging.DEBUG)
-    logger.debug("Debug level set to show prompts and response JSON")
-
-
-# if true, don't ask user for input, rely on hardware buttons
-g.isUsingHardwareButtons = False
-
-if args.gokiosk:
-    # jump into Kiosk mode
-    print("\r\nKiosk mode enabled\r\n")
-    g.isUsingHardwareButtons = True
-    g.isAudioKeywords = True
-    numLoops = 1
-    loopDelay = 0
-    firstProcessStep = processStep.Audio
-else:
-    # if we're given a file via the command line then start at that step
-    # check in reverse order so that processStartStep will be the latest step for any set of arguments
-    firstProcessStep = processStep.NoneSpecified
-    if args.image != 0: 
-        firstProcessStep = processStep.Image
-    elif args.keywords != 0: 
-        firstProcessStep = processStep.Keywords
-    elif args.summary != 0: 
-        firstProcessStep = processStep.Summarize
-    elif args.transcript != 0: 
-        firstProcessStep  = processStep.Transcribe
-    elif args.wav != 0:
-        firstProcessStep = processStep.Audio
-
-    # if set, then record only 10 seconds of audio and use that for the keywords
-    g.isAudioKeywords = False
-    if args.onlykeywords:
-        g.isAudioKeywords = True
-        g.duration = 10
-
-
-# if true, we had an error and want to just go back to the top of the loop
-g.abortThisIteration = False
-
-# ----------------------
-# Main Loop 
-#
-
-done = False  # set to true to exit the loop
-loopDelay = 60 # delay between loops in seconds
-
-randomDisplayMode = True 
-
-lastButtonPressedTime = 0
-lastImageDisplayedTime = 0
-
-while not done:
-
-    if firstProcessStep > processStep.Audio or args.wav != 0:
-
-        # we have file parameters, so only loop once
-        numLoops = 1
-        loopDelay = 1   # no delay if we're not looping XXX
-
-    else:
-        # no command line input parameters so prompt the user for a command
-
-        inputCommand = ""
-        if not g.isUsingHardwareButtons: 
-            # print menu
-            print("\r\n\n\n")
-            print("Commands:")
-            print("   o: Once, record and display; default")
-            print("   a: Auto mode, record, display, and loop")
-            if not g_isMacOS:
-                # running on RPi
-                print("   h: Hardware control")
-            print("   q: Quit")
-
-            # wait for the user to press a key
-            inputCommand = input("Type a command ...")
-
-        if inputCommand == 'h':
-            # not in the menu except on RPi
-            # don't ask the user for input again, rely on hardware buttons
-            g.isUsingHardwareButtons = True
-            print("\r\nHardware control enabled")
-
-        elif inputCommand == 'q': # quit
-            done = True
-            numLoops = 0
-            loopDelay = 0
-
-        elif inputCommand == 'a': # auto mode
-            numLoops = LOOPS_MAX
-            print("Will loop: " + str(numLoops) + " times")
-            
-        else: # default is once
-            numLoops = 1
-            loopDelay = 0
-            firstProcessStep = processStep.Audio
-
-        if g.isUsingHardwareButtons:
-            # we're not going to prompt the user for input again, rely on hardware buttons
-            isButtonPressed = False
-
-            while not isButtonPressed:
-                # running on RPi
-                # read gpio pin, if pressed, then do a cycle of keyword input
-                if GPIO.input(BUTTON_GO) == BUTTON_PRESSED:
-                    g.isAudioKeywords = True
-                    numLoops = 1
-                    isButtonPressed = True
-                    lastButtonPressedTime = time.time()
-                    # print("stop random display " + str(lastButtonPressedTime))
-                    randomDisplayMode = False
-
-                else:
-                    # if the last button press was more than 90 seconds ago, then display history
-                    if (time.time() - lastButtonPressedTime > 90) and (not randomDisplayMode):
-                        # print ("start random display " + str(time.time()) + " " + str(lastButtonPressedTime))
-                        lastImageDisplayedTime = time.time()
-                        randomDisplayMode = True # stay in this mode until the button is pressed again
-                        lastImageDisplayedTime = 0 # should display a picture immediately
-                        
-                    if randomDisplayMode:
-
-                        if time.time() - lastImageDisplayedTime > 15:
-
-                            # list all files in the history folder
-                            historyFolder = "./history"
-                            historyFiles = os.listdir(historyFolder)
-                            #remove any non-png files from historyFiles
-                            imagesToDisplay = []
-                            for file in historyFiles:
-                                if file.endswith(".png"):
-                                    #add to the list
-                                    imagesToDisplay.append(file)
-                            lastImageDisplayedTime = time.time()
-                            random.shuffle(imagesToDisplay) # randomize the list
-                            display_image(historyFolder + "/" + imagesToDisplay[0], labelForImageDisplay)
-                            
-                            # let the tkinter window events happen
-                            g_windowForImage.update_idletasks()
-                            g_windowForImage.update()
-                            
-
-        if g.isAudioKeywords:
-            # we are not going to extract keywords from the transcript
-            duration = 10
-
-    # loop will normally process audio and display the images
-    # but if we're given a file then start at that step (processStep)
-    # and numLoops should be 1
-    for i in range(0, numLoops, 1):
-
-        g.abortThisIteration = False
-
-        # format a time string to use as a file name
-        timestr = time.strftime("%Y%m%d-%H%M%S")
-
-        soundFileName = ""
-        transcript = ""
-        summary = ""
-        keywords = ""
-        imageURLs = ""
-
-        # Audio - get a recording.wav file
-        if firstProcessStep <= processStep.Audio:
-
-            changeBlinkRate(BLINK_FOR_AUDIO_CAPTURE)
-
-            if args.wav == 0:
-                # record audio from the default microphone
-                soundFileName = recordAudioFromMicrophone()
-
-                if args.savefiles:
-                    #copy the file to a new name with the time stamp
-                    shutil.copy(soundFileName, "history/" + timestr + "-recording" + ".wav")
-                    soundFileName = "history/" + timestr + "-recording" + ".wav"
-        
-            else:
-                # use the file specified by the wav argument
-                soundFileName = args.wav
-                logger.info("Using audio file: " + args.wav)
-
-            changeBlinkRate(BLINK_STOP)
-    
-        # Transcribe - set transcript
-        if firstProcessStep <= processStep.Transcribe:
-        
-            changeBlinkRate(BLINK1)
-
-            if args.transcript == 0:
-                # transcribe the recording
-                transcript = getTranscript(soundFileName)
-
-                if args.savefiles:
-                    f = open("history/" + timestr + "-rawtranscript" + ".txt", "w")
-                    f.write(transcript)
-                    f.close()
-            else:
-                # use the text file specified 
-                transcriptFile = open(args.transcript, "r")
-                # read the transcript file
-                transcript = transcriptFile.read()
-                logger.info("Using transcript file: " + args.transcript)
-
-            changeBlinkRate(BLINK_STOP)
-
-        # Summary - set summary
-        if firstProcessStep <= processStep.Summarize:
-
-            """ Skip summarization for now
-            changeBlinkRate(BLINK2)
-
-            if args.summary == 0:
-                # summarize the transcript
-                summary = getSummary(transcript)
-
-                if args.savefiles:
-                    f = open("history/" + timestr + "-summary" + ".txt", "w")
-                    f.write(summary)
-                    f.close()
-
-            else:
-                # use the text file specified by the transcript argument
-                summaryFile = open(summaryArg, "r")
-                # read the summary file
-                summary = summaryFile.read()
-                logger.info("Using summary file: " + summaryArg)
-            
-            changeBlinkRate(BLINK_STOP)
-            """
-
-
-        # Keywords - set keywords
-        if firstProcessStep <= processStep.Keywords:
-
-            changeBlinkRate(BLINK3)
-
-            if not g.isAudioKeywords:
-
-                if args.keywords == 0:
-                    # extract the keywords from the summary
-                    keywords = getAbstractForImageGen(transcript) 
-
-                    if args.savefiles:
-                        f = open("history/" + timestr + "-keywords" + ".txt", "w")
-                        f.write(keywords)
-                        f.close()
-
-                else:
-                    # use the extract file specified by the extract argument
-                    summaryFile = open(args.keywords, "r")
-                    # read the summary file
-                    keywords = summaryFile.read()
-                    logger.info("Using abstract file: " + args.keywords)
-                
-            else:
-                # use the transcript as the keywords
-                keywords = transcript
-
-            changeBlinkRate(BLINK_STOP)
-
-        # Image - set imageURL
-        if firstProcessStep <= processStep.Image:
-
-            changeBlinkRate(BLINK4)
-
-            if args.image == 0:
-
-                # use the keywords to generate images
-                try:
-                    imagesInfo = getImageURL(keywords)
-
-                    imageURLs = imagesInfo[0]
-                    imageArtist = imagesInfo[1]
-                    imageMedium = imagesInfo[2]   
-
-                    newFileName = postProcessImages(imageURLs, imageArtist, imageMedium, keywords, timestr)
-
-                    imageURLs = "file://" + os.getcwd() + "/" + newFileName
-                    logger.debug("imageURL: " + imageURLs)
-
-                except Exception as e:
-
-                    print ("AI Image Error: " + str(e))
-
-                    newFileName = generateErrorImage(e, timestr)
-
-                    imageURLs = "file://" + os.getcwd() + "/" + newFileName
-                    logger.debug("Error Image Created: " + imageURLs)       
-            
-            else:
-                imageURLs = [args.image]
-                newFileName = args.image
-                logger.info("Using image file: " + args.image )
-
-            changeBlinkRate(BLINK_STOP)
-            
-        # Display - display imageURL
-        
-        if isOverRemoteSSL:
-            # don't try to disply
-            print("Not displaying image because we're running over SSL")
-        else:
-            # display the image
-            changeBlinkRate(BLINK_SLOW)
-            logger.info("Displaying image...")
-
-            # display the image with pillow
-            #image = Image.open(newFileName)
-            #image.show()
-
-            display_image(newFileName, labelForImageDisplay)
-            g_windowForImage.update_idletasks()
-            g_windowForImage.update()
-            
-            changeBlinkRate(BLINK_STOP)
-
-        # The end of the for loop
-        changeBlinkRate(BLINK_STOP)
-        # are we running the command line file args?
-        if firstProcessStep > processStep.Audio or args.wav != 0:
-            # We've done one and we're all done
-            done = True
-            time.sleep(20)   # persist the image display for 20 seconds
-        else:
-            #delay before the next for loop iteration
-            if not g.isUsingHardwareButtons:
-                print("delaying " + str(loopDelay) + " seconds...")
-                time.sleep(loopDelay)
-
-        # let the tkinter window events happen
-        g_windowForImage.update_idletasks()
-        g_windowForImage.update()
-         
-        # end of loop
-
-# all done
-if not g_isMacOS:
-    # running on RPi
-    # Stop the LED thread
-    changeBlinkRate(BLINK_DIE)
-    led_thread1.join()
-
-    # Clean up the GPIO pins
-    GPIO.cleanup()
-
-# exit the program
-print("\r\n")
+main()
 exit()
 
 
