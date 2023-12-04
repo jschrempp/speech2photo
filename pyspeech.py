@@ -123,9 +123,6 @@ v 0.7 updated to python 3.12 and openAI 1.0.0 (wow that was a pain)
       BE SURE to read updated install instructions above
 """
 
-import openai
-print(openai.__version__)
-
 # import common libraries
 import platform
 import argparse
@@ -141,7 +138,6 @@ from enum import IntEnum
 from PIL import Image, ImageDraw, ImageFont, ImageTk
 
 import openai
-# from openai import OpenAI
 
 g_isMacOS = False
 if (platform.system() == "Darwin"):
@@ -201,24 +197,23 @@ IMAGE_MODIFIERS_MEDIUM = [
                     "vivid color",
                     "photograph",
                     ]
-
-# Define  constants for blinking the LED (onTime, offTime)
-BLINK_FAST = (0.1, 0.1)
-BLINK_SLOW = (0.5, 0.5)
-BLINK_FOR_AUDIO_CAPTURE = (0.05, 0.05)
-BLINK1 = (0.5, 0.2)
-BLINK2 = (0.4, 0.2)
-BLINK3 = (0.3, 0.2)
-BLINK4 = (0.2, 0.2)
-BLINK_STOP = (-1, -1)
-BLINK_DIE = (-2, -2)
-
 if not g_isMacOS:
     # Define the GPIO pins for RPi
     LED_RED = 8
     BUTTON_GO = 10
     BUTTON_PULL_UP_DOWN = GPIO.PUD_UP
     BUTTON_PRESSED = GPIO.LOW  
+
+    # Define  constants for blinking the LED (onTime, offTime)
+    BLINK_FAST = (0.1, 0.1)
+    BLINK_SLOW = (0.5, 0.5)
+    BLINK_FOR_AUDIO_CAPTURE = (0.05, 0.05)
+    BLINK1 = (0.5, 0.2)
+    BLINK2 = (0.4, 0.2)
+    BLINK3 = (0.3, 0.2)
+    BLINK4 = (0.2, 0.2)
+    BLINK_STOP = (-1, -1)
+    BLINK_DIE = (-2, -2)
 
  # global variables
 class g_vars:
@@ -235,11 +230,16 @@ class g_vars:
 g = g_vars()
 
 # XXX client = OpenAI()  # must have set up your key in the shell as noted in comments above
-
 client = openai
 
+# set up logging
 logger = logging.getLogger(__name__) # parameter: -d 1
 loggerTrace = logging.getLogger("Prompts") # parameter: -d 2
+logging.basicConfig(level=logging.WARNING, format=' %(asctime)s - %(levelname)s - %(message)s')
+
+# create root window for display and hide it
+root = tk.Tk()
+root.withdraw()  # Hide the root window
 
 
 if not g_isMacOS:
@@ -1101,12 +1101,7 @@ def main():
     print("\r\n")
 
 
-# set up logging
-logging.basicConfig(level=logging.WARNING, format=' %(asctime)s - %(levelname)s - %(message)s')
 
-# create root window for display and hide it
-root = tk.Tk()
-root.withdraw()  # Hide the root window
 
 main()
 exit()
