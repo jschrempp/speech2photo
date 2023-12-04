@@ -84,6 +84,10 @@ Specific to Raspberry Pi:
             mkdir .config/lxsession/LXDE-pi/autostart
             cp Desktop/s2p.desktop .config/lxsession/LXDE-pi/autostart/s2p.desktop
 
+            OR
+
+            sudo cp Desktop/s2p.desktop /usr/share/xsessions/s2p.desktop
+
         2b. on MacOS install these
             brew install portaudio
             brew update-reset   # if your brew isn't working try this
