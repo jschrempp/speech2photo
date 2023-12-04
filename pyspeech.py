@@ -139,6 +139,23 @@ from PIL import Image, ImageDraw, ImageFont, ImageTk
 import openai
 # from openai import OpenAI
 
+# import platform specific libraries
+
+if g_isMacOS:
+    import sounddevice
+    import soundfile
+
+else:
+    # --------- import for Raspberry Pi -----------------------------------------
+    import pyaudio
+    import wave
+    from ctypes import *
+    import RPi.GPIO as GPIO
+    import threading
+    from queue import Queue
+
+
+
 g_isMacOS = False
 if (platform.system() == "Darwin"):
     g_isMacOS = True
@@ -212,31 +229,12 @@ class g_vars:
 
 g = g_vars()
 
-
-
-#client = OpenAI()  # must have set up your key in the shell as noted in comments above
+# XXX client = OpenAI()  # must have set up your key in the shell as noted in comments above
 
 client = openai
 
 logger = logging.getLogger(__name__) # parameter: -d 1
 loggerTrace = logging.getLogger("Prompts") # parameter: -d 2
-
-# import platform specific libraries
-
-
-if g_isMacOS:
-    import sounddevice
-    import soundfile
-
-else:
-    # --------- set for Raspberry Pi -----------------------------------------
-    import pyaudio
-    import wave
-    from ctypes import *
-    import RPi.GPIO as GPIO
-    import threading
-    from queue import Queue
-
 
 
 if not g_isMacOS:
