@@ -119,6 +119,9 @@ v 0.7 updated to python 3.12 and openAI 1.0.0 (wow that was a pain)
       BE SURE to read updated install instructions above
 """
 
+import openai
+print(openai.__version__)
+
 # import common libraries
 import platform
 import argparse
@@ -134,19 +137,92 @@ from enum import IntEnum
 from PIL import Image, ImageDraw, ImageFont, ImageTk
 
 import openai
-from openai import OpenAI
+# from openai import OpenAI
 
-client = OpenAI()  # must have set up your key in the shell as noted in comments above
-
-logger = logging.getLogger(__name__) # parameter: -d 1
-loggerTrace = logging.getLogger("Prompts") # parameter: -d 2
-
-# import platform specific libraries
 g_isMacOS = False
 if (platform.system() == "Darwin"):
     g_isMacOS = True
 else:
     print ("Not MacOS")
+
+# Global reference to the windows
+# need to be outside the global class so that tkinter can access them
+g_windowForImage = None
+g_windowForInstructions = None
+
+# Global constants
+LOOPS_MAX = 10 # Set the number of times to loop when in auto mode
+
+# Instructions text
+INSTRUCTIONS_TEXT = ('\r\n\nWelcome to the experiment. \n\r When you are ready, press and release the'
+                    + ' button. You will have 10 seconds to speak your instructions. Then wait.'
+                    + ' An image will appear shortly.'
+                    + '\r\nUntil then, enjoy some previous images!')
+
+# Prompt for abstraction
+PROMPT_FOR_ABSTRACTION = "What is the most interesting concept in the following text \
+    expressing the answer as a noun phrase, but not in a full sentence "
+
+# image modifiers
+IMAGE_MODIFIERS_ARTIST = [
+                    "Picasso",
+                    "Van Gogh",
+                    "Monet",
+                    "Dali",
+                    "Escher",
+                    "Rembrandt",
+                    ]
+IMAGE_MODIFIERS_MEDIUM = [
+                    "painting",
+                    "watercolor",
+                    "sketch",
+                    "vivid color",
+                    "photograph",
+                    ]
+
+# Define  constants for blinking the LED (onTime, offTime)
+BLINK_FAST = (0.1, 0.1)
+BLINK_SLOW = (0.5, 0.5)
+BLINK_FOR_AUDIO_CAPTURE = (0.05, 0.05)
+BLINK1 = (0.5, 0.2)
+BLINK2 = (0.4, 0.2)
+BLINK3 = (0.3, 0.2)
+BLINK4 = (0.2, 0.2)
+BLINK_STOP = (-1, -1)
+BLINK_DIE = (-2, -2)
+
+if not g_isMacOS:
+    # Define the GPIO pins for RPi
+    LED_RED = 8
+    BUTTON_GO = 10
+    BUTTON_PULL_UP_DOWN = GPIO.PUD_UP
+    BUTTON_PRESSED = GPIO.LOW  
+
+ # global variables
+class g_vars:
+   
+    # Set the duration of each recording in seconds
+    duration = 120
+
+    # if true don't use the command menu if we're using a button
+    isUsingHardwareButtons = False  
+
+    # When true don't extract keywords from the transcript, just use it for the image prompt
+    isAudioKeywords = False
+
+g = g_vars()
+
+
+
+#client = OpenAI()  # must have set up your key in the shell as noted in comments above
+
+client = openai
+
+logger = logging.getLogger(__name__) # parameter: -d 1
+loggerTrace = logging.getLogger("Prompts") # parameter: -d 2
+
+# import platform specific libraries
+
 
 if g_isMacOS:
     import sounddevice
@@ -162,77 +238,19 @@ else:
     from queue import Queue
 
 
-# Set the duration of each recording in seconds
-duration = 120
-
-# Set the number of times to loop when in auto mode
-loopsMax = 10
-
-# Instructions text
-'''
-instructions = ('\r\n\nWelcome to the experiment. \n\r When you are ready, press the button' 
-+ ' and hold it down while you speak your instructions. Then release the button and wait.'
-+ ' An image will appear shortly.')
-'''
-
-instructions = ('\r\n\nWelcome to the experiment. \n\r When you are ready, press and release the'
-                + ' button. You will have 10 seconds to speak your instructions. Then wait.'
-                + ' An image will appear shortly.'
-                + '\r\nUntil then, enjoy some previous images!')
-
-# Prompt for abstraction
-promptForAbstraction = "What is the most interesting concept in the following text \
-    expressing the answer as a noun phrase, but not in a full sentence "
-
-# image modifiers
-imageModifiersArtist = [
-                    "Picasso",
-                    "Van Gogh",
-                    "Monet",
-                    "Dali",
-                    "Escher",
-                    "Rembrandt",
-                    ]
-imageModifiersMedium = [
-                    "painting",
-                    "watercolor",
-                    "sketch",
-                    "vivid color",
-                    "photograph",
-                    ]
-
-# Global reference to the window
-g_windowForImage = None
-g_windowForInstructions = None
-
-# Define  constants for blinking the LED (onTime, offTime)
-constBlinkFast = (0.1, 0.1)
-constBlinkSlow = (0.5, 0.5)
-constBlinkAudioCapture = (0.05, 0.05)
-constBlink1 = (0.5, 0.2)
-constBlink2 = (0.4, 0.2)
-constBlink3 = (0.3, 0.2)
-constBlink4 = (0.2, 0.2)
-
-constBlinkStop = (-1, -1)
-constBlinkDie = (-2, -2)
 
 if not g_isMacOS:
     # --------- Raspberry Pi specific code -----------------------------------------
     logger.info("Setting up GPIO pins")
 
-    g_LEDRed = 8
-    g_goButton = 10
-
     # Set the pin numbering mode to BCM
     GPIO.setmode(GPIO.BOARD)
 
-    # Set up pin g_LEDRed as an output
-    GPIO.setup(g_LEDRed, GPIO.OUT, initial=GPIO.LOW)
+    # Set up pin g.LEDRed as an output
+    GPIO.setup(g.LEDRed, GPIO.OUT, initial=GPIO.LOW)
     
     # Set up pin 10 as an input for the start button
-    GPIO.setup(g_goButton, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    g_buttonPressed = GPIO.LOW
+    GPIO.setup(g.goButton, GPIO.IN, pull_up_down=g.buttonPullUpDown)
 
     # Define a function to blink the LED
     # This function is run on a thread
@@ -244,7 +262,7 @@ if not g_isMacOS:
 
         # initialize the LED
         isBlinking = False
-        GPIO.output(g_LEDRed, GPIO.LOW)
+        GPIO.output(LED_RED, GPIO.LOW)
 
         while True:
             # Get the blink time from the queue
@@ -262,7 +280,7 @@ if not g_isMacOS:
                 break
             elif blink_time[0] == -1:
                 # stop blinking
-                GPIO.output(g_LEDRed, GPIO.LOW)
+                GPIO.output(g.LEDRed, GPIO.LOW)
                 isBlinking = False
             else:
                 onTime = blink_time[0]
@@ -271,11 +289,11 @@ if not g_isMacOS:
 
             if isBlinking:
                 # Turn the LED on
-                GPIO.output(g_LEDRed, GPIO.HIGH)
+                GPIO.output(LED_RED, GPIO.HIGH)
                 # Wait for blink_time seconds
                 time.sleep(onTime)
                 # Turn the LED off
-                GPIO.output(g_LEDRed, GPIO.LOW)
+                GPIO.output(LED_RED, GPIO.LOW)
                 # Wait for blink_time seconds
                 time.sleep(offTime)
 
@@ -324,11 +342,11 @@ def recordAudioFromMicrophone():
 
         logger.debug('sample_rate: %d; channels: %d', sample_rate, channels)
 
-        logger.info("Recording %d seconds...", duration)
+        logger.info("Recording %d seconds...", g.duration)
         os.system('say "Recording."')
         # Record audio from the default microphone
         recording = sounddevice.rec(
-            int(duration * sample_rate), 
+            int(g.duration * sample_rate), 
             samplerate=sample_rate, 
             channels=channels
             )
@@ -444,9 +462,9 @@ def getAbstractForImageGen(inputText):
     # extract the keywords from the summary
 
     logger.info("Extracting...")
-    logger.debug("Prompt for abstraction: " + promptForAbstraction)    
+    logger.debug("Prompt for abstraction: " + PROMPT_FOR_ABSTRACTION)    
 
-    prompt = promptForAbstraction + "'''" + inputText + "'''"
+    prompt = PROMPT_FOR_ABSTRACTION + "'''" + inputText + "'''"
     loggerTrace.debug ("prompt for extract: " + prompt)
 
     responseForImage = client.chat.completions.create(model="gpt-3.5-turbo",
@@ -488,9 +506,9 @@ def getImageURL(phrase):
     # add a modifier to the phrase
     # pick random modifiers
     import random
-    random.shuffle(imageModifiersArtist)
-    random.shuffle(imageModifiersMedium)
-    prompt = prompt + " in the style of " + imageModifiersArtist[0] + " as a " + imageModifiersMedium[0]
+    random.shuffle(IMAGE_MODIFIERS_ARTIST)
+    random.shuffle(IMAGE_MODIFIERS_MEDIUM)
+    prompt = prompt + " in the style of " + IMAGE_MODIFIERS_ARTIST[0] + " as a " + IMAGE_MODIFIERS_MEDIUM[0]
 
     prompt = f"{prompt} for the following concept: {phrase}"
 
@@ -516,7 +534,7 @@ def getImageURL(phrase):
     image_url[2] = responseImage.data[2].url
     image_url[3] = responseImage.data[3].url
 
-    return image_url, imageModifiersArtist[0], imageModifiersMedium[0]
+    return image_url, IMAGE_MODIFIERS_ARTIST[0], IMAGE_MODIFIERS_MEDIUM[0]
 
 # ----------------------
 # reformat image(s) for display
@@ -604,7 +622,7 @@ def create_instructions_window():
 
     g_windowForInstructions = tk.Toplevel(root, bg='#52837D')
     g_windowForInstructions.title("Instructions")
-    label = tk.Label(g_windowForInstructions, text=instructions, 
+    label = tk.Label(g_windowForInstructions, text=INSTRUCTIONS_TEXT, 
                      font=("Helvetica", 32),
                      justify=tk.CENTER,
                      width=80,
@@ -740,13 +758,13 @@ elif args.debug == 2:
 
 
 # if true, don't ask user for input, rely on hardware buttons
-g_isUsingHardwareButtons = False
+g.isUsingHardwareButtons = False
 
 if args.gokiosk:
     # jump into Kiosk mode
     print("\r\nKiosk mode enabled\r\n")
-    g_isUsingHardwareButtons = True
-    g_isAudioKeywords = True
+    g.isUsingHardwareButtons = True
+    g.isAudioKeywords = True
     numLoops = 1
     loopDelay = 0
     firstProcessStep = processStep.Audio
@@ -766,13 +784,14 @@ else:
         firstProcessStep = processStep.Audio
 
     # if set, then record only 10 seconds of audio and use that for the keywords
-    g_isAudioKeywords = False
+    g.isAudioKeywords = False
     if args.onlykeywords:
-        g_isAudioKeywords = True
+        g.isAudioKeywords = True
+        g.duration = 10
 
 
 # if true, we had an error and want to just go back to the top of the loop
-g_abortThisIteration = False
+g.abortThisIteration = False
 
 # ----------------------
 # Main Loop 
@@ -798,7 +817,7 @@ while not done:
         # no command line input parameters so prompt the user for a command
 
         inputCommand = ""
-        if not g_isUsingHardwareButtons: 
+        if not g.isUsingHardwareButtons: 
             # print menu
             print("\r\n\n\n")
             print("Commands:")
@@ -815,7 +834,7 @@ while not done:
         if inputCommand == 'h':
             # not in the menu except on RPi
             # don't ask the user for input again, rely on hardware buttons
-            g_isUsingHardwareButtons = True
+            g.isUsingHardwareButtons = True
             print("\r\nHardware control enabled")
 
         elif inputCommand == 'q': # quit
@@ -824,7 +843,7 @@ while not done:
             loopDelay = 0
 
         elif inputCommand == 'a': # auto mode
-            numLoops = loopsMax
+            numLoops = LOOPS_MAX
             print("Will loop: " + str(numLoops) + " times")
             
         else: # default is once
@@ -832,17 +851,15 @@ while not done:
             loopDelay = 0
             firstProcessStep = processStep.Audio
 
-        if g_isUsingHardwareButtons:
+        if g.isUsingHardwareButtons:
             # we're not going to prompt the user for input again, rely on hardware buttons
             isButtonPressed = False
-
-
 
             while not isButtonPressed:
                 # running on RPi
                 # read gpio pin, if pressed, then do a cycle of keyword input
-                if GPIO.input(g_goButton) == g_buttonPressed:
-                    g_isAudioKeywords = True
+                if GPIO.input(g.goButton) == g.buttonPressed:
+                    g.isAudioKeywords = True
                     numLoops = 1
                     isButtonPressed = True
                     lastButtonPressedTime = time.time()
@@ -875,11 +892,11 @@ while not done:
                             display_image(historyFolder + "/" + imagesToDisplay[0], labelForImageDisplay)
                             
                             # let the tkinter window events happen
-                            g_windowForImage.update_idletasks()
-                            g_windowForImage.update()
+                            g.windowForImage.update_idletasks()
+                            g.windowForImage.update()
                             
 
-        if g_isAudioKeywords:
+        if g.isAudioKeywords:
             # we are not going to extract keywords from the transcript
             duration = 10
 
@@ -888,7 +905,7 @@ while not done:
     # and numLoops should be 1
     for i in range(0, numLoops, 1):
 
-        g_abortThisIteration = False
+        g.abortThisIteration = False
 
         # format a time string to use as a file name
         timestr = time.strftime("%Y%m%d-%H%M%S")
@@ -902,7 +919,7 @@ while not done:
         # Audio - get a recording.wav file
         if firstProcessStep <= processStep.Audio:
 
-            changeBlinkRate(constBlinkAudioCapture)
+            changeBlinkRate(BLINK_FOR_AUDIO_CAPTURE)
 
             if args.wav == 0:
                 # record audio from the default microphone
@@ -918,12 +935,12 @@ while not done:
                 soundFileName = args.wav
                 logger.info("Using audio file: " + args.wav)
 
-            changeBlinkRate(constBlinkStop)
+            changeBlinkRate(BLINK_STOP)
     
         # Transcribe - set transcript
         if firstProcessStep <= processStep.Transcribe:
         
-            changeBlinkRate(constBlink1)
+            changeBlinkRate(BLINK1)
 
             if args.transcript == 0:
                 # transcribe the recording
@@ -940,13 +957,13 @@ while not done:
                 transcript = transcriptFile.read()
                 logger.info("Using transcript file: " + args.transcript)
 
-            changeBlinkRate(constBlinkStop)
+            changeBlinkRate(BLINK_STOP)
 
         # Summary - set summary
         if firstProcessStep <= processStep.Summarize:
 
             """ Skip summarization for now
-            changeBlinkRate(constBlink2)
+            changeBlinkRate(BLINK2)
 
             if args.summary == 0:
                 # summarize the transcript
@@ -964,16 +981,16 @@ while not done:
                 summary = summaryFile.read()
                 logger.info("Using summary file: " + summaryArg)
             
-            changeBlinkRate(constBlinkStop)
+            changeBlinkRate(BLINK_STOP)
             """
 
 
         # Keywords - set keywords
         if firstProcessStep <= processStep.Keywords:
 
-            changeBlinkRate(constBlink3)
+            changeBlinkRate(BLINK3)
 
-            if not g_isAudioKeywords:
+            if not g.isAudioKeywords:
 
                 if args.keywords == 0:
                     # extract the keywords from the summary
@@ -995,12 +1012,12 @@ while not done:
                 # use the transcript as the keywords
                 keywords = transcript
 
-            changeBlinkRate(constBlinkStop)
+            changeBlinkRate(BLINK_STOP)
 
         # Image - set imageURL
         if firstProcessStep <= processStep.Image:
 
-            changeBlinkRate(constBlink4)
+            changeBlinkRate(BLINK4)
 
             if args.image == 0:
 
@@ -1031,7 +1048,7 @@ while not done:
                 newFileName = args.image
                 logger.info("Using image file: " + args.image )
 
-            changeBlinkRate(constBlinkStop)
+            changeBlinkRate(BLINK_STOP)
             
         # Display - display imageURL
         
@@ -1040,7 +1057,7 @@ while not done:
             print("Not displaying image because we're running over SSL")
         else:
             # display the image
-            changeBlinkRate(constBlinkSlow)
+            changeBlinkRate(BLINK_SLOW)
             logger.info("Displaying image...")
 
             # display the image with pillow
@@ -1051,10 +1068,10 @@ while not done:
             g_windowForImage.update_idletasks()
             g_windowForImage.update()
             
-            changeBlinkRate(constBlinkStop)
+            changeBlinkRate(BLINK_STOP)
 
         # The end of the for loop
-        changeBlinkRate(constBlinkStop)
+        changeBlinkRate(BLINK_STOP)
         # are we running the command line file args?
         if firstProcessStep > processStep.Audio or args.wav != 0:
             # We've done one and we're all done
@@ -1062,7 +1079,7 @@ while not done:
             time.sleep(20)   # persist the image display for 20 seconds
         else:
             #delay before the next for loop iteration
-            if not g_isUsingHardwareButtons:
+            if not g.isUsingHardwareButtons:
                 print("delaying " + str(loopDelay) + " seconds...")
                 time.sleep(loopDelay)
 
@@ -1076,7 +1093,7 @@ while not done:
 if not g_isMacOS:
     # running on RPi
     # Stop the LED thread
-    changeBlinkRate(constBlinkDie)
+    changeBlinkRate(BLINK_DIE)
     led_thread1.join()
 
     # Clean up the GPIO pins
