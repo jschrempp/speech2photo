@@ -139,8 +139,13 @@ from PIL import Image, ImageDraw, ImageFont, ImageTk
 import openai
 # from openai import OpenAI
 
-# import platform specific libraries
+g_isMacOS = False
+if (platform.system() == "Darwin"):
+    g_isMacOS = True
+else:
+    print ("Not MacOS")
 
+# import platform specific libraries
 if g_isMacOS:
     import sounddevice
     import soundfile
@@ -156,11 +161,7 @@ else:
 
 
 
-g_isMacOS = False
-if (platform.system() == "Darwin"):
-    g_isMacOS = True
-else:
-    print ("Not MacOS")
+
 
 # Global reference to the windows
 # need to be outside the global class so that tkinter can access them
