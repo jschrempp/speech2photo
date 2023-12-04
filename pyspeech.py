@@ -246,10 +246,10 @@ if not g_isMacOS:
     GPIO.setmode(GPIO.BOARD)
 
     # Set up pin g.LEDRed as an output
-    GPIO.setup(g.LEDRed, GPIO.OUT, initial=GPIO.LOW)
+    GPIO.setup(LED_RED, GPIO.OUT, initial=GPIO.LOW)
     
     # Set up pin 10 as an input for the start button
-    GPIO.setup(g.goButton, GPIO.IN, pull_up_down=g.buttonPullUpDown)
+    GPIO.setup(BUTTON_GO, GPIO.IN, pull_up_down=g.buttonPullUpDown)
 
     # Define a function to blink the LED
     # This function is run on a thread
@@ -279,7 +279,7 @@ if not g_isMacOS:
                 break
             elif blink_time[0] == -1:
                 # stop blinking
-                GPIO.output(g.LEDRed, GPIO.LOW)
+                GPIO.output(LED_RED, GPIO.LOW)
                 isBlinking = False
             else:
                 onTime = blink_time[0]
