@@ -861,7 +861,7 @@ while not done:
             while not isButtonPressed:
                 # running on RPi
                 # read gpio pin, if pressed, then do a cycle of keyword input
-                if GPIO.input(g.goButton) == g.buttonPressed:
+                if GPIO.input(BUTTON_GO) == BUTTON_PRESSED:
                     g.isAudioKeywords = True
                     numLoops = 1
                     isButtonPressed = True
@@ -895,8 +895,8 @@ while not done:
                             display_image(historyFolder + "/" + imagesToDisplay[0], labelForImageDisplay)
                             
                             # let the tkinter window events happen
-                            g.windowForImage.update_idletasks()
-                            g.windowForImage.update()
+                            g_windowForImage.update_idletasks()
+                            g_windowForImage.update()
                             
 
         if g.isAudioKeywords:
