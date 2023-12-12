@@ -116,6 +116,7 @@ Specific to Raspberry Pi:
     
 Author: Jim Schrempp 2023 
 
+v 0.7 more code cleanup
 v 0.6 added -g for gokiosk mode
 v 0.5 Initial version
 v 0.6 2023-11-12 inverted Go Button logic so it is active low (pulled to ground)
@@ -197,23 +198,24 @@ IMAGE_MODIFIERS_MEDIUM = [
                     "vivid color",
                     "photograph",
                     ]
+
+# Define  constants for blinking the LED (onTime, offTime)
+BLINK_FAST = (0.1, 0.1)
+BLINK_SLOW = (0.5, 0.5)
+BLINK_FOR_AUDIO_CAPTURE = (0.05, 0.05)
+BLINK1 = (0.5, 0.2)
+BLINK2 = (0.4, 0.2)
+BLINK3 = (0.3, 0.2)
+BLINK4 = (0.2, 0.2)
+BLINK_STOP = (-1, -1)
+BLINK_DIE = (-2, -2)
+
 if not g_isMacOS:
     # Define the GPIO pins for RPi
     LED_RED = 8
     BUTTON_GO = 10
     BUTTON_PULL_UP_DOWN = GPIO.PUD_UP
     BUTTON_PRESSED = GPIO.LOW  
-
-    # Define  constants for blinking the LED (onTime, offTime)
-    BLINK_FAST = (0.1, 0.1)
-    BLINK_SLOW = (0.5, 0.5)
-    BLINK_FOR_AUDIO_CAPTURE = (0.05, 0.05)
-    BLINK1 = (0.5, 0.2)
-    BLINK2 = (0.4, 0.2)
-    BLINK3 = (0.3, 0.2)
-    BLINK4 = (0.2, 0.2)
-    BLINK_STOP = (-1, -1)
-    BLINK_DIE = (-2, -2)
 
  # global variables
 class g_vars:
@@ -226,7 +228,7 @@ class g_vars:
 
     # When true don't extract keywords from the transcript, just use it for the image prompt
     isAudioKeywords = False
-
+    
 g = g_vars()
 
 # XXX client = OpenAI()  # must have set up your key in the shell as noted in comments above
@@ -648,6 +650,7 @@ def create_image_window():
     screen_height = g_windowForImage.winfo_screenheight()
     g_windowForImage.geometry("+%d+%d" % (screen_width-1000, screen_height*.1))
     label = tk.Label(g_windowForImage)
+    g_windowForImage.withdraw()  # Hide the window until needed
 
     return label
 
@@ -675,8 +678,30 @@ def display_image(image_path, label=None):
     label.configure(image=photoImage)
     label.image = photoImage  # Keep a reference to the image to prevent it from being garbage collected
     label.pack() # Show the label
+    g_windowForImage.deiconify() # Show the window now that it has an image
 
     return label
+
+def display_random_history_image(labelForImageDisplay):
+
+    global g_windowForImage
+
+    # list all files in the history folder
+    historyFolder = "./history"
+    historyFiles = os.listdir(historyFolder)
+    #remove any non-png files from historyFiles
+    imagesToDisplay = []
+    for file in historyFiles:
+        if file.endswith(".png"):
+            #add to the list
+            imagesToDisplay.append(file)
+    random.shuffle(imagesToDisplay) # randomize the list
+    display_image(historyFolder + "/" + imagesToDisplay[0], labelForImageDisplay)
+    
+    # let the tkinter window events happen
+    g_windowForImage.update_idletasks()
+    g_windowForImage.update()
+
 
 def close_image_window():
 
@@ -812,9 +837,9 @@ def main():
             loopDelay = 1   # no delay if we're not looping XXX
 
         else:
-            # no command line input parameters so prompt the user for a command
+            # no command line input parameters so get a command from the user
 
-            inputCommand = ""
+            inputCommand = None
             if not g.isUsingHardwareButtons: 
                 # print menu
                 print("\r\n\n\n")
@@ -826,31 +851,33 @@ def main():
                     print("   h: Hardware control")
                 print("   q: Quit")
 
+                # BLOCKING CALL
                 # wait for the user to press a key
                 inputCommand = input("Type a command ...")
 
-            if inputCommand == 'h':
-                # not in the menu except on RPi
-                # don't ask the user for input again, rely on hardware buttons
-                g.isUsingHardwareButtons = True
-                print("\r\nHardware control enabled")
+                if inputCommand == 'h':
+                    # not in the menu except on RPi
+                    # don't ask the user for input again, rely on hardware buttons
+                    g.isUsingHardwareButtons = True
+                    print("\r\nHardware control enabled")
 
-            elif inputCommand == 'q': # quit
-                done = True
-                numLoops = 0
-                loopDelay = 0
+                elif inputCommand == 'q': # quit
+                    done = True
+                    numLoops = 0
+                    loopDelay = 0
 
-            elif inputCommand == 'a': # auto mode
-                numLoops = LOOPS_MAX
-                print("Will loop: " + str(numLoops) + " times")
-                
-            else: # default is once
-                numLoops = 1
-                loopDelay = 0
-                firstProcessStep = processStep.Audio
+                elif inputCommand == 'a': # auto mode
+                    numLoops = LOOPS_MAX
+                    print("Will loop: " + str(numLoops) + " times")
+                    
+                else: # default is once
+                    numLoops = 1
+                    loopDelay = 0
+                    firstProcessStep = processStep.Audio
 
+            # we can't use else here because the command menu input might set this value
             if g.isUsingHardwareButtons:
-                # we're not going to prompt the user for input again, rely on hardware buttons
+                # we're not going to prompt the user for input, rely on hardware buttons
                 isButtonPressed = False
 
                 while not isButtonPressed:
@@ -873,30 +900,16 @@ def main():
                             lastImageDisplayedTime = 0 # should display a picture immediately
                             
                         if randomDisplayMode:
-
                             if time.time() - lastImageDisplayedTime > 15:
-
-                                # list all files in the history folder
-                                historyFolder = "./history"
-                                historyFiles = os.listdir(historyFolder)
-                                #remove any non-png files from historyFiles
-                                imagesToDisplay = []
-                                for file in historyFiles:
-                                    if file.endswith(".png"):
-                                        #add to the list
-                                        imagesToDisplay.append(file)
+                                display_random_history_image(labelForImageDisplay)
                                 lastImageDisplayedTime = time.time()
-                                random.shuffle(imagesToDisplay) # randomize the list
-                                display_image(historyFolder + "/" + imagesToDisplay[0], labelForImageDisplay)
-                                
-                                # let the tkinter window events happen
-                                g_windowForImage.update_idletasks()
-                                g_windowForImage.update()
-                                
 
-            if g.isAudioKeywords:
-                # we are not going to extract keywords from the transcript
-                duration = 10
+
+        if g.isAudioKeywords: 
+            # we are not going to extract keywords from the transcript
+            g.duration = 10
+
+        # we have a command. Either a command line file argument, a menu command, or a button press
 
         # loop will normally process audio and display the images
         # but if we're given a file then start at that step (processStep)
