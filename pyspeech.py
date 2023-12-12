@@ -116,7 +116,7 @@ Specific to Raspberry Pi:
     
 Author: Jim Schrempp 2023 
 
-v 0.7 more code cleanup
+v 0.7 more code cleanup, improved image resizing for display size
 v 0.6 added -g for gokiosk mode
 v 0.5 Initial version
 v 0.6 2023-11-12 inverted Go Button logic so it is active low (pulled to ground)
@@ -673,7 +673,6 @@ def display_image(image_path, label=None):
     #resize the image to fit the window
     screen_width = g_windowForImage.winfo_screenwidth()
     screen_height = g_windowForImage.winfo_screenheight()
-    print ("screen width: " + str(screen_width) + " screen height: " + str(screen_height))
     resizeFactor = 0.9 
     new_width = int(screen_height * resizeFactor * img.width / img.height)
     new_height = int(screen_height * resizeFactor)
@@ -682,7 +681,6 @@ def display_image(image_path, label=None):
     #images are typically 1024 x 1074   (1.05) (.95)
     elif img.height > screen_height-100:
         img = img.resize((new_width,new_height), Image.NEAREST)
-        print ("image width: " + str(img.width) + " image height: " + str(img.height))
 
     # Convert the image to a PhotoImage
     photoImage = ImageTk.PhotoImage(img)
