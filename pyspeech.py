@@ -671,7 +671,17 @@ def display_image(image_path, label=None):
         return
 
     #resize the image to fit the window
-    img = img.resize((800, 850), Image.NEAREST)
+    screen_width = g_windowForImage.winfo_screenwidth()
+    screen_height = g_windowForImage.winfo_screenheight()
+    print ("screen width: " + str(screen_width) + " screen height: " + str(screen_height))
+    #images are typically 1024 x 1074   (1.05) (.95)
+    if img.height > screen_height-100:
+        # resize the image to fit the screen
+        new_width = int(screen_height * 0.95 * img.width / img.height)
+        new_height = int(screen_height * 0.95)
+        img = img.resize((new_width,new_height), Image.NEAREST)
+        print ("image width: " + str(img.width) + " image height: " + str(img.height))
+
 
     # Convert the image to a PhotoImage
     photoImage = ImageTk.PhotoImage(img)
