@@ -174,7 +174,7 @@ g_windowForInstructions = None
 LOOPS_MAX = 10 # Set the number of times to loop when in auto mode
 
 # Instructions text
-INSTRUCTIONS_TEXT = ('\r\nWelcome to the experiment. \n\r When you are ready, press and release the'
+INSTRUCTIONS_TEXT = ('Welcome to the experiment. \n\r When you are ready, press and release the'
                     + ' button. You will have 10 seconds to speak your instructions. Then wait.'
                     + ' An image will appear shortly.'
                     + '\r\nUntil then, enjoy some previous images!')
