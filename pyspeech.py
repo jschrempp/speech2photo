@@ -117,6 +117,7 @@ Specific to Raspberry Pi:
 Author: Jim Schrempp 2023 
 
 v 0.7 more code cleanup, improved image resizing for display size
+      added QR code
 v 0.6 added -g for gokiosk mode
 v 0.5 Initial version
 v 0.6 2023-11-12 inverted Go Button logic so it is active low (pulled to ground)
@@ -173,7 +174,7 @@ g_windowForInstructions = None
 LOOPS_MAX = 10 # Set the number of times to loop when in auto mode
 
 # Instructions text
-INSTRUCTIONS_TEXT = ('\r\n\nWelcome to the experiment. \n\r When you are ready, press and release the'
+INSTRUCTIONS_TEXT = ('\r\nWelcome to the experiment. \n\r When you are ready, press and release the'
                     + ' button. You will have 10 seconds to speak your instructions. Then wait.'
                     + ' An image will appear shortly.'
                     + '\r\nUntil then, enjoy some previous images!')
@@ -627,7 +628,7 @@ def create_instructions_window():
 
     g_windowForInstructions = tk.Toplevel(root, bg='#52837D')
     g_windowForInstructions.title("Instructions")
-    label = tk.Label(g_windowForInstructions, text=INSTRUCTIONS_TEXT, 
+    labelTextLong = tk.Label(g_windowForInstructions, text=INSTRUCTIONS_TEXT, 
                      font=("Helvetica", 32),
                      justify=tk.CENTER,
                      width=80,
@@ -638,7 +639,26 @@ def create_instructions_window():
     g_windowForInstructions.minsize(200, 500)
     g_windowForInstructions.maxsize(500, 1000)
     g_windowForInstructions.geometry("+50+0") 
-    label.pack()
+    labelTextLong.pack()
+
+    labelQRText = tk.Label(g_windowForInstructions, text="\r\rScan this QR code for instructions on how to make your own speech to photo generator.", 
+                     font=("Helvetica", 18),
+                     justify=tk.CENTER,
+                     width=80,
+                     wraplength=400,
+                     bg='#52837D',
+                     fg='#FFFFFF',
+                     )
+    labelQRText.pack()
+
+    # add the image to the window
+    img = Image.open("S2PQR.png")
+    img = img.resize((200,200), Image.NEAREST)
+    photoImage = ImageTk.PhotoImage(img)
+    label2 = tk.Label(g_windowForInstructions, image=photoImage)
+    label2.image = photoImage  # Keep a reference to the image to prevent it from being garbage collected
+    label2.pack(pady=20)
+
 
 def create_image_window():
 
@@ -650,6 +670,7 @@ def create_image_window():
     screen_height = g_windowForImage.winfo_screenheight()
     g_windowForImage.geometry("+%d+%d" % (screen_width-1000, screen_height*.02))
     label = tk.Label(g_windowForImage)
+    label.configure(bg='#000000')
     g_windowForImage.withdraw()  # Hide the window until needed
 
     return label
