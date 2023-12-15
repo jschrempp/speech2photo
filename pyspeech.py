@@ -640,26 +640,30 @@ def create_instructions_window():
     g_windowForInstructions.minsize(200, 500)
     g_windowForInstructions.maxsize(500, 1000)
     g_windowForInstructions.geometry("+50+0") 
-    labelTextLong.pack()
 
-    labelQRText = tk.Label(g_windowForInstructions, text="\r\rScan this QR code for instructions on how to make your own speech to photo generator.", 
+    frame = tk.Frame(g_windowForInstructions, bg='#52837D')
+
+    labelQRText = tk.Label(frame, text="Scan this QR code for instructions on how to "
+                           + "make your own speech to photo generator.", 
                      font=("Helvetica", 18),
-                     justify=tk.CENTER,
-                     width=80,
-                     wraplength=400,
+                     justify=tk.LEFT,
+                     wraplength=200,
                      bg='#52837D',
                      fg='#FFFFFF',
                      )
-    labelQRText.pack()
 
     # add the image to the window
     img = Image.open("S2PQR.png")
-    img = img.resize((200,200), Image.NEAREST)
+    img = img.resize((150,150), Image.NEAREST)
     photoImage = ImageTk.PhotoImage(img)
-    label2 = tk.Label(g_windowForInstructions, image=photoImage)
+    label2 = tk.Label(frame, image=photoImage,
+                     bg='#52837D')
     label2.image = photoImage  # Keep a reference to the image to prevent it from being garbage collected
-    label2.pack(pady=20)
 
+    labelTextLong.pack(side=tk.TOP)
+    frame.pack(fill=tk.X, pady=40)
+    label2.pack(side=tk.LEFT,padx=20)
+    labelQRText.pack(side=tk.LEFT,padx=0)
 
 def create_image_window():
 
