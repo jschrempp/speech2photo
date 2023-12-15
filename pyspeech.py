@@ -173,11 +173,6 @@ g_windowForInstructions = None
 # Global constants
 LOOPS_MAX = 10 # Set the number of times to loop when in auto mode
 
-# Instructions text
-INSTRUCTIONS_TEXT = ('Welcome to the experiment. \n\r When you are ready, press and release the'
-                    + ' button. You will have 10 seconds to speak your instructions. Then wait.'
-                    + ' An image will appear shortly.'
-                    + '\r\nUntil then, enjoy some previous images!')
 
 # Prompt for abstraction
 PROMPT_FOR_ABSTRACTION = "What is the most interesting concept in the following text \
@@ -626,10 +621,16 @@ def create_instructions_window():
 
     global g_windowForInstructions
 
+    # Instructions text
+    INSTRUCTIONS_TEXT = ('Welcome to the experiment. \n\r When you are ready, press and release the'
+                    + ' button. You will have 10 seconds to speak your instructions. Then wait.'
+                    + ' An image will appear shortly.'
+                    + '\r\nUntil then, enjoy some previous images!')
+
     g_windowForInstructions = tk.Toplevel(root, bg='#52837D')
     g_windowForInstructions.title("Instructions")
     labelTextLong = tk.Label(g_windowForInstructions, text=INSTRUCTIONS_TEXT, 
-                     font=("Helvetica", 32),
+                     font=("Helvetica", 28),
                      justify=tk.CENTER,
                      width=80,
                      wraplength=400,
