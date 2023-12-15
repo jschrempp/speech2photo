@@ -622,7 +622,7 @@ def create_instructions_window():
     global g_windowForInstructions
 
     # Instructions text
-    INSTRUCTIONS_TEXT = ('\r\nWelcome to the experiment. \n\r When you are ready, press and release the'
+    INSTRUCTIONS_TEXT = ('\r\nWelcome to\rSpeech 2 Picture\n\rWhen you are ready, press and release the'
                     + ' button. You will have 10 seconds to speak your instructions. Then wait.'
                     + ' An image will appear shortly.'
                     + '\r\nUntil then, enjoy some previous images!')
