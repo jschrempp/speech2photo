@@ -647,7 +647,7 @@ def create_instructions_window():
                            + "make your own speech to photo generator.", 
                      font=("Helvetica", 18),
                      justify=tk.LEFT,
-                     wraplength=200,
+                     wraplength=280,
                      bg='#52837D',
                      fg='#FFFFFF',
                      )
@@ -661,9 +661,9 @@ def create_instructions_window():
     label2.image = photoImage  # Keep a reference to the image to prevent it from being garbage collected
 
     labelTextLong.pack(side=tk.TOP)
-    frame.pack(fill=tk.X, pady=40)
+    frame.pack(fill=tk.X, pady=50)
     label2.pack(side=tk.LEFT,padx=20)
-    labelQRText.pack(side=tk.LEFT,padx=0)
+    labelQRText.pack(side=tk.LEFT,padx=10)
 
 def create_image_window():
 
@@ -765,9 +765,9 @@ def main():
 
 
 
-    if not g_isMacOS:
+    #if not g_isMacOS:
         #Show instructions
-        create_instructions_window()
+    create_instructions_window()
 
     # create the window to display the images
     labelForImageDisplay = create_image_window()
