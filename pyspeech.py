@@ -129,6 +129,7 @@ v 0.7 updated to python 3.12 and openAI 1.0.0 (wow that was a pain)
 import platform
 import argparse
 import logging
+from logging.handlers import TimedRotatingFileHandler
 import urllib.request
 import time
 import shutil
@@ -234,6 +235,14 @@ client = openai
 logger = logging.getLogger(__name__) # parameter: -d 1
 loggerTrace = logging.getLogger("Prompts") # parameter: -d 2
 logging.basicConfig(level=logging.WARNING, format=' %(asctime)s - %(levelname)s - %(message)s')
+
+logToFile = logging.getLogger("s2plog")
+logToFile.setLevel(logging.INFO)
+handler = TimedRotatingFileHandler('s2plog.log', when="midnight", interval=7, backupCount=10)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logToFile.addHandler(handler)
+
 
 # create root window for display and hide it
 root = tk.Tk()
@@ -764,7 +773,6 @@ def main():
         Image = 5
 
 
-
     #if not g_isMacOS:
         #Show instructions
     create_instructions_window()
@@ -991,6 +999,7 @@ def main():
                 if args.transcript == 0:
                     # transcribe the recording
                     transcript = getTranscript(soundFileName)
+                    logToFile.info("Transcript: " + transcript)
 
                     if args.savefiles:
                         f = open("history/" + timestr + "-rawtranscript" + ".txt", "w")
@@ -1041,6 +1050,7 @@ def main():
                     if args.keywords == 0:
                         # extract the keywords from the summary
                         keywords = getAbstractForImageGen(transcript) 
+                        logToFile.info("Keywords: " + keywords)
 
                         if args.savefiles:
                             f = open("history/" + timestr + "-keywords" + ".txt", "w")
@@ -1080,9 +1090,12 @@ def main():
                         imageURLs = "file://" + os.getcwd() + "/" + newFileName
                         logger.debug("imageURL: " + imageURLs)
 
+                        logToFile.info("Image file: " + newFileName)
+
                     except Exception as e:
 
                         print ("AI Image Error: " + str(e))
+                        logToFile.info("AI Image Error: " + str(e))
 
                         newFileName = generateErrorImage(e, timestr)
 
@@ -1149,7 +1162,7 @@ def main():
     print("\r\n")
 
 
-
+logToFile.info("Starting Speech2Picture")
 
 main()
 exit()
