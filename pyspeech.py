@@ -174,27 +174,24 @@ g_windowForInstructions = None
 # Global constants
 LOOPS_MAX = 10 # Set the number of times to loop when in auto mode
 
-
 # Prompt for abstraction
 PROMPT_FOR_ABSTRACTION = "What is the most interesting concept in the following text \
     expressing the answer as a noun phrase, but not in a full sentence "
 
-# image modifiers
-IMAGE_MODIFIERS_ARTIST = [
-                    "Picasso",
-                    "Van Gogh",
-                    "Monet",
-                    "Dali",
-                    "Escher",
-                    "Rembrandt",
-                    ]
-IMAGE_MODIFIERS_MEDIUM = [
-                    "painting",
-                    "watercolor",
-                    "sketch",
-                    "vivid color",
-                    "photograph",
-                    ]
+# image prompt modifiers
+IMAGE_MODIFIERS = [
+    "as a painting by Picasso",
+    "as a watercolor by Picasso",
+    "as a sketch by Picasso",
+    "as a vivid color painting by Monet",
+    "as a painting by Van Gogh",
+    "as a painting by Dali",
+    "in the style of Escher",
+    "in the style of Rembrandt",
+    "as a photograph by Ansel Adams",
+    "as a painting by Edward Hopper",
+    "as a painting by Norman Rockwell",
+]
 
 # Define  constants for blinking the LED (onTime, offTime)
 BLINK_FAST = (0.1, 0.1)
@@ -534,17 +531,11 @@ def getAbstractForImageGen(inputText):
 #
 def getImageURL(phrase):
 
-    # use the keywords to generate an image
-
-    prompt = "Generate a picture" 
-    # add a modifier to the phrase
     # pick random modifiers
-    import random
-    random.shuffle(IMAGE_MODIFIERS_ARTIST)
-    random.shuffle(IMAGE_MODIFIERS_MEDIUM)
-    prompt = prompt + " in the style of " + IMAGE_MODIFIERS_ARTIST[0] + " as a " + IMAGE_MODIFIERS_MEDIUM[0]
-
-    prompt = f"{prompt} for the following concept: {phrase}"
+    random.shuffle(IMAGE_MODIFIERS)
+  
+    # create the prompt for the image generator
+    prompt = f"Generate a picture {IMAGE_MODIFIERS[0]} for the following concept: {phrase}"
 
     logger.info("Generating image...")
     logger.info("image prompt: " + prompt)
@@ -568,13 +559,13 @@ def getImageURL(phrase):
     image_url[2] = responseImage.data[2].url
     image_url[3] = responseImage.data[3].url
 
-    return image_url, IMAGE_MODIFIERS_ARTIST[0], IMAGE_MODIFIERS_MEDIUM[0]
+    return image_url, IMAGE_MODIFIERS[0]
 
 # ----------------------
 # reformat image(s) for display
 #    return the new file name
 #
-def postProcessImages(imageURLs, imageArtist, imageMedium, keywords, timestr):
+def postProcessImages(imageURLs, imageModifiers, keywords, timestr):
     # save the images from a urls into imgObjects[]
     imgObjects = []
     for numURL in range(len(imageURLs)):
@@ -598,7 +589,7 @@ def postProcessImages(imageURLs, imageArtist, imageMedium, keywords, timestr):
         new_im.paste(imgObjects[count], loc)
 
     # add text at the bottom
-    imageCaption = keywords + " as a " + imageMedium + " by " + imageArtist
+    imageCaption = f'{keywords} {imageModifiers}'
     draw = ImageDraw.Draw(new_im)
     draw.rectangle(((0, new_im.height - 50), (new_im.width, new_im.height)), fill="black")
     font = ImageFont.truetype("arial.ttf", 18)
@@ -1098,10 +1089,9 @@ def main():
                         imagesInfo = getImageURL(keywords)
 
                         imageURLs = imagesInfo[0]
-                        imageArtist = imagesInfo[1]
-                        imageMedium = imagesInfo[2]   
+                        imageModifiers = imagesInfo[1]
 
-                        newFileName = postProcessImages(imageURLs, imageArtist, imageMedium, keywords, timestr)
+                        newFileName = postProcessImages(imageURLs, imageModifiers, keywords, timestr)
 
                         imageURLs = "file://" + os.getcwd() + "/" + newFileName
                         logger.debug("imageURL: " + imageURLs)
