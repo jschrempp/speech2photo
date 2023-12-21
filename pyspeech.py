@@ -812,7 +812,7 @@ def parseCommandLineArgs():
         g.isAudioKeywords = True
         g.numLoops = 1
         g.loopDelay = 0
-        g.firstProcessStep = processStep.Audio
+        g.firstProcessStep = processStep.NoneSpecified
     else:
         # if we're given a file via the command line then start at that step
         # check in reverse order so that processStartStep will be the latest step for any set of arguments
@@ -975,9 +975,6 @@ def main():
             summary = ""
             keywords = ""
             imageURLs = ""
-
-
-            print ("firstProcessStep: " + str(g.firstProcessStep))
 
             # Audio - get a recording.wav file
             if g.firstProcessStep <= processStep.Audio:
