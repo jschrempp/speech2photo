@@ -472,14 +472,15 @@ def getSummary(textInput):
     # summarize the transcript 
     logger.info("Summarizing...")
 
-    responseSummary = client.chat.completions.create(model="gpt-3.5-turbo",
-    messages=[
-        {"role": "user", "content" : 
-        f"Please summarize the following text:\n{textInput}" }
-    ])
+    responseSummary = client.chat.completions.create(
+                        model="gpt-3.5-turbo",
+                        messages=[
+                            {"role": "user", "content" : 
+                            f"Please summarize the following text:\n{textInput}" }
+                        ])
     loggerTrace.debug("responseSummary: " + str(responseSummary))
 
-    summary = responseSummary['choices'][0]['message']['content'].strip()
+    summary = responseSummary.choices[0].message.content.strip()
     
     logger.debug("Summary: " + summary)
 
@@ -498,10 +499,11 @@ def getAbstractForImageGen(inputText):
     prompt = PROMPT_FOR_ABSTRACTION + "'''" + inputText + "'''"
     loggerTrace.debug ("prompt for extract: " + prompt)
 
-    responseForImage = client.chat.completions.create(model="gpt-3.5-turbo",
-    messages=[
-        {"role": "user", "content": prompt}
-    ])
+    responseForImage = client.chat.completions.create(
+                        model="gpt-3.5-turbo",
+                        messages=[
+                            {"role": "user", "content": prompt}
+                        ])
 
     loggerTrace.debug("responseForImageGen: " + str(responseForImage))
 
