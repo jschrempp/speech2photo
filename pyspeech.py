@@ -337,10 +337,9 @@ if not g_isMacOS:
 
     # --------- end of Raspberry Pi specific code ----------------------------
 
-# ----------------------
-# change the blink rate
-#   This routine isolates the RPi specific code
+
 def changeBlinkRate(blinkRate):
+    '''change the LED blink rate. This routine isolates the RPi specific code'''
     if not g_isMacOS:
         # running on RPi
         qBlinkControl.put(blinkRate)
@@ -349,11 +348,8 @@ def changeBlinkRate(blinkRate):
         pass
 
 
-
-# ----------------------
-# record duration seconds of audio from the default microphone to a file and return the sound file name
-#
 def recordAudioFromMicrophone():
+    '''record duration seconds of audio from the default microphone to a file and return the sound file name'''
 
     soundFileName = 'recording.wav'
     
@@ -443,10 +439,9 @@ def recordAudioFromMicrophone():
 
     return soundFileName
 
-# ----------------------
-# transcribe the audio file and return the transcript
-#
+
 def getTranscript(wavFileName):
+    '''transcribe the audio file and return the transcript'''
 
     # transcribe the recording
     logger.info("Transcribing...")
@@ -464,10 +459,9 @@ def getTranscript(wavFileName):
 
     return transcript
 
-# ----------------------
-# summarize the transcript and return the summary
-#
+
 def getSummary(textInput):
+    '''summarize the transcript and return the summary'''
     
     # summarize the transcript 
     logger.info("Summarizing...")
@@ -486,10 +480,9 @@ def getSummary(textInput):
 
     return summary
 
-# ----------------------
-# get keywords for the image generator and return the keywords
-#
+
 def getAbstractForImageGen(inputText):
+    '''get keywords for the image generator and return the keywords'''
 
     # extract the keywords from the summary
 
@@ -528,10 +521,9 @@ def getAbstractForImageGen(inputText):
 
     return abstract
 
-# ----------------------
-# get images and return the urls
-#
+
 def getImageURL(phrase):
+    '''get images and return the urls'''
 
     # pick random modifiers
     random.shuffle(IMAGE_MODIFIERS)
@@ -563,11 +555,10 @@ def getImageURL(phrase):
 
     return image_url, IMAGE_MODIFIERS[0]
 
-# ----------------------
-# reformat image(s) for display
-#    return the new file name
-#
+
 def postProcessImages(imageURLs, imageModifiers, keywords, timestr):
+    '''reformat the images for display and return the new file name'''
+
     # save the images from a urls into imgObjects[]
     imgObjects = []
     for numURL in range(len(imageURLs)):
@@ -605,11 +596,10 @@ def postProcessImages(imageURLs, imageModifiers, keywords, timestr):
 
     return newFileName
 
-# ----------------------
-# generate error message image for display
-#    return the new file name
-#
+
 def generateErrorImage(e, timestr):
+    '''generate an image with the error message and return the new file name'''
+
     # make an image to display the error
     total_width = 512*2
     max_height = 512*2 + 50
@@ -644,6 +634,7 @@ def generateErrorImage(e, timestr):
     return newFileName
 
 def create_instructions_window():
+    '''create and display a window with static instructions'''
 
     global g_windowForInstructions
 
@@ -692,6 +683,7 @@ def create_instructions_window():
     labelQRText.pack(side=tk.LEFT,padx=10)
 
 def create_image_window():
+    '''create a window to display the images; return a label to display the images'''
 
     global g_windowForImage
 
@@ -707,6 +699,7 @@ def create_image_window():
     return label
 
 def display_image(image_path, label=None):
+    '''display an image in the window using the label object'''
 
     global g_windowForImage
 
@@ -744,6 +737,7 @@ def display_image(image_path, label=None):
     return label
 
 def display_random_history_image(labelForImageDisplay):
+    '''display a random image from the history folder in the window using the label object'''
 
     global g_windowForImage
 
@@ -765,6 +759,7 @@ def display_random_history_image(labelForImageDisplay):
 
 
 def close_image_window():
+    '''close the image window'''
 
     global g_windowForImage
 
@@ -776,6 +771,7 @@ def close_image_window():
 
 
 def parseCommandLineArgs():
+    '''parse the command line arguments and set the global variables'''
 
     # parse the command line arguments
     parser = argparse.ArgumentParser()
