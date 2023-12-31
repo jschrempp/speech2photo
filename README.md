@@ -42,6 +42,8 @@ Useful options:
 
 -h Hardware ... Goes into a loop waiting for a button to be pressed (a pin to be pulled low)
 
+-g Goes into Kiosk mode, useful for autostart installations
+
 Command line options exist to let you pass in an existing file to one of the steps. For instance, if you want to experiment with how the final image files are displayed, -i <filename> will jump right to that step so you don't have to do all the previous steps.
 
 To run this you need to get an OpenAI API key and put it into an environment variable OPENAI_API_KEY. See more
