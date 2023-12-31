@@ -1,12 +1,12 @@
+# EDIT THIS FILE TO REPLACE {your user} 
+#
 # Put this on your own desktop for easy way to start 
-#   cp /home/<<your user name>>/speech2picture/s2p.desktop /home/<<your user name>>/Desktop/s2p.desktop
+#   cp /home/{your user}/speech2picture/s2p.desktop /home/{your user}/Desktop/s2p.desktop
 #
-# On RPi for autostart put this file in this folder
-# raspbian 2023-10-10 64 bit
-#   sudo cp /home/<<your user name>>/speech2picture/s2p.desktop /usr/share/xsessions/
-# be sure it has execute everyone permission
+# For autostart on (raspbian 2023-10-10 64 bit) 
+#   sudo cp /home/{your user}/speech2picture/s2p.desktop  /etc/xdg/autostart
 #
-# in the RPi world things might change for autostart. This is a good reference.
+# in the RPi world things might change for autostart. This URL is a good reference.
 # https://forums.raspberrypi.com/viewtopic.php?t=294014 
 #
 # On RPi if using hardware button always, then modify s2p.sh to have the -g command line option
@@ -18,8 +18,8 @@ Name=s2pautostart
 Type=Application
 Comment=Speech Picture
 Categories=Application
-Path=/home/jbs
-Exec=lxterminal -e "bash /home/jbs/speech2picture/s2p.sh"
+Path=/home/{your user}
+Exec=lxterminal -e "bash /home/{your user}/speech2picture/s2p.sh"
 Terminal=true
 StartupNotify=false
 X-KeepTerminal=true

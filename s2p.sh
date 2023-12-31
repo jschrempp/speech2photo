@@ -1,7 +1,7 @@
 #!/bin/bash
-# script to make running the speech2picture program easier
+# EDIT THIS FILE TO REPLACE {your user} 
 #
-# Also could be called by s2p.desktop shortcut
+# script to make running the speech2picture program easier
 #
 # On RPi if using hardware button always, then modify the last line
 # to have the -g command line option instead of -o
@@ -11,5 +11,5 @@ pwd
 # see comments at the top of pyspeech.py
 source ~/.bashrc
 cd speech2picture
-source /home/jbs/speech2picture/.venv/bin/activate
+source /home/{your user}/speech2picture/.venv/bin/activate
 python pyspeech.py -o
