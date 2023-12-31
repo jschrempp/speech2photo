@@ -46,3 +46,6 @@ Command line options exist to let you pass in an existing file to one of the ste
 
 To run this you need to get an OpenAI API key and put it into an environment variable OPENAI_API_KEY. See more
 details in the comments at the top of the source file.
+
+Kiosk hardware set up
+https://github.com/jschrempp/speech2picture/wiki
