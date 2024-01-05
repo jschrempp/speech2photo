@@ -116,6 +116,9 @@ Specific to Raspberry Pi:
     
 Author: Jim Schrempp 2023 
 
+Version History of significant changes:
+
+v 0.8 added "without any text or writing in the image" to the image prompt
 v 0.7 more code cleanup, improved image resizing for display size
       added QR code
 v 0.6 added -g for gokiosk mode
@@ -530,7 +533,7 @@ def getImageURL(phrase):
     random.shuffle(IMAGE_MODIFIERS)
   
     # create the prompt for the image generator
-    prompt = f"Generate a picture {IMAGE_MODIFIERS[0]} for the following concept: {phrase}"
+    prompt = f"Generate a picture {IMAGE_MODIFIERS[0]} without any text or writing in the image for the following concept: {phrase}"
 
     logger.info("Generating image...")
     logger.info("image prompt: " + prompt)
