@@ -179,6 +179,7 @@ PROMPT_FOR_ABSTRACTION = "What is the most interesting concept in the following 
     expressing the answer as a noun phrase, but not in a full sentence "
 
 # image prompt modifiers
+# 'generate a picture [MODIFIER] for the following concept: ...'
 IMAGE_MODIFIERS = [
     "as a painting by Picasso",
     "as a watercolor by Picasso",
@@ -628,7 +629,7 @@ def generateErrorImage(e, timestr):
     #draw.text((10, new_im.height/2), imageCaption, (255,255,255), font=font)
 
     # save the new image
-    newFileName = "history/" + timestr + "-image" + ".png"
+    newFileName = "errors/" + timestr + "-image" + ".png"
     new_im.save(newFileName)
 
     return newFileName
@@ -854,6 +855,8 @@ def main():
     # create a directory if one does not exist
     if not os.path.exists("history"):
         os.makedirs("history")
+    if not os.path.exists("errors"):
+        os.makedirs("errors")
 
 
     parseCommandLineArgs()
