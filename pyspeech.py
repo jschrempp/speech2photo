@@ -741,21 +741,21 @@ def display_image(image_path, label=None):
     return label
 
 def display_random_history_image(labelForImageDisplay):
-    '''display a random image from the history folder in the window using the label object'''
+    '''display a random image from the idleDisplayFiles in the window using the label object'''
 
     global g_windowForImage
 
-    # list all files in the history folder
-    historyFolder = "./history"
-    historyFiles = os.listdir(historyFolder)
-    #remove any non-png files from historyFiles
+    # list all files in the idleDisplayFiles folder
+    idleDisplayFolder = "./idleDisplayFiles"
+    idleDisplayFiles = os.listdir(idleDisplayFolder)
+    #remove any non-png files from Files
     imagesToDisplay = []
-    for file in historyFiles:
+    for file in idleDisplayFiles:
         if file.endswith(".png"):
             #add to the list
             imagesToDisplay.append(file)
     random.shuffle(imagesToDisplay) # randomize the list
-    display_image(historyFolder + "/" + imagesToDisplay[0], labelForImageDisplay)
+    display_image(idleDisplayFolder + "/" + imagesToDisplay[0], labelForImageDisplay)
     
     # let the tkinter window events happen
     g_windowForImage.update_idletasks()
