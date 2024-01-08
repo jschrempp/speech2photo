@@ -51,3 +51,10 @@ details in the comments at the top of the source file.
 
 Kiosk hardware set up
 https://github.com/jschrempp/speech2picture/wiki
+
+NOTE: With the Jan 8, 2024 commit there has been a significant change. We have found that OpenAI can 
+occasionally create offensive images. For that reason we have changed how the idle display of images
+works. Random images are now displayed from the ./idleDisplayFiles folder. New images are automatically
+saved in the ./history folder. As a result, new images will not be in the idle display rotation. We 
+suggest that you periodically review the files in the ./history folder and move acceptable images into
+the ./idleDisplayFiles folder.
