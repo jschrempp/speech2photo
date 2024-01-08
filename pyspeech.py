@@ -717,6 +717,8 @@ def display_image(image_path, label=None):
     except Exception as e:
         print("Error opening image file")
         print(e)
+        logger.error("Error opening image file")
+        logger.error(e)
         return
 
     #resize the image to fit the window
