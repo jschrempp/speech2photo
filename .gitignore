@@ -3,3 +3,5 @@ history/
 mnhistory/
 *.wav
 .venv/*
+idleDisplayFiles/*.png
+errors/
