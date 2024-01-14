@@ -632,7 +632,7 @@ def generateErrorImage(e, timestr):
     #draw.text((10, new_im.height/2), imageCaption, (255,255,255), font=font)
 
     # save the new image
-    newFileName = "errors/" + timestr + "-image" + ".png"
+    newFileName = "errors/" + timestr + "-imageERROR" + ".png"
     new_im.save(newFileName)
 
     return newFileName
@@ -1104,7 +1104,7 @@ def main():
                     except Exception as e:
 
                         print ("AI Image Error: " + str(e))
-                        logToFile.info("AI Image Error: " + str(e))
+                        logToFile.info("AI Image Error: " + str(e), exc_info=True)
 
                         newFileName = generateErrorImage(e, timestr)
 
@@ -1128,7 +1128,12 @@ def main():
             #image = Image.open(newFileName)
             #image.show()
 
-            display_image(newFileName, labelForImageDisplay)
+            try:
+                display_image(newFileName, labelForImageDisplay)
+            except Exception as e:
+                logger.error("Error displaying image: " + newFileName, exc_info=True)
+                logger.error(e)
+            
             g_windowForImage.update_idletasks()
             g_windowForImage.update()
             
