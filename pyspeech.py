@@ -707,6 +707,8 @@ def display_image(image_path, label=None):
 
     global g_windowForImage
 
+    logger.debug("display_image: " + image_path)
+
     if label is None:
         print("Error: label is None")  
         return
@@ -714,31 +716,30 @@ def display_image(image_path, label=None):
     # Open an image file
     try:
         img = Image.open(image_path)
+        #resize the image to fit the window
+        screen_width = g_windowForImage.winfo_screenwidth()
+        screen_height = g_windowForImage.winfo_screenheight()
+        resizeFactor = 0.9 
+        new_width = int(screen_height * resizeFactor * img.width / img.height)
+        new_height = int(screen_height * resizeFactor)
+        if img.width < 520:
+            img = img.resize((new_width,new_height), Image.NEAREST)
+        #images are typically 1024 x 1074   (1.05) (.95)
+        elif img.height > screen_height-100:
+            img = img.resize((new_width,new_height), Image.NEAREST)
+
+        # Convert the image to a PhotoImage
+        photoImage = ImageTk.PhotoImage(img)
+        label.configure(image=photoImage)
+        label.image = photoImage  # Keep a reference to the image to prevent it from being garbage collected
+        label.pack() # Show the label
+        g_windowForImage.deiconify() # Show the window now that it has an image
+
     except Exception as e:
-        print("Error opening image file")
+        print("Error with image file: " + image_path)
         print(e)
-        logger.error("Error opening image file")
+        logger.error("Error with image file: " + image_path)
         logger.error(e)
-        return
-
-    #resize the image to fit the window
-    screen_width = g_windowForImage.winfo_screenwidth()
-    screen_height = g_windowForImage.winfo_screenheight()
-    resizeFactor = 0.9 
-    new_width = int(screen_height * resizeFactor * img.width / img.height)
-    new_height = int(screen_height * resizeFactor)
-    if img.width < 520:
-        img = img.resize((new_width,new_height), Image.NEAREST)
-    #images are typically 1024 x 1074   (1.05) (.95)
-    elif img.height > screen_height-100:
-        img = img.resize((new_width,new_height), Image.NEAREST)
-
-    # Convert the image to a PhotoImage
-    photoImage = ImageTk.PhotoImage(img)
-    label.configure(image=photoImage)
-    label.image = photoImage  # Keep a reference to the image to prevent it from being garbage collected
-    label.pack() # Show the label
-    g_windowForImage.deiconify() # Show the window now that it has an image
 
     return label
 
@@ -954,6 +955,7 @@ def main():
                             
                         if randomDisplayMode:
                             if time.time() - lastImageDisplayedTime > 15:
+
                                 display_random_history_image(labelForImageDisplay)
                                 lastImageDisplayedTime = time.time()
 
@@ -1174,7 +1176,15 @@ def main():
 
 logToFile.info("Starting Speech2Picture")
 
-main()
+
+try:
+    main()
+except Exception as e:
+    print("\n\n\n")
+    print(e)
+    print("\n\n\n")
+    logToFile.error(e, exc_info=True)
+
 exit()
 
 
