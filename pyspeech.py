@@ -460,6 +460,7 @@ def getTranscript(wavFileName):
     transcript = responseTranscript.text 
 
     loggerTrace.debug("Transcript text: " + transcript)
+    logToFile.info("Transcript text: " + transcript)
 
     return transcript
 
@@ -481,6 +482,7 @@ def getSummary(textInput):
     summary = responseSummary.choices[0].message.content.strip()
     
     logger.debug("Summary: " + summary)
+    logToFile.info("Summary: " + summary)
 
     return summary
 
@@ -522,6 +524,7 @@ def getAbstractForImageGen(inputText):
         abstract = str(res) 
 
     logger.info("Abstract: " + abstract)
+    logToFile.info("Abstract: " + abstract)
 
     return abstract
 
@@ -613,6 +616,7 @@ def generateErrorImage(e, timestr):
     
     # add error text
     imageCaption = str(e)
+    logToFile.error("Error: " + imageCaption)
     
     font = ImageFont.truetype("arial.ttf", 24)
     # decide if text will exceed the width of the image
@@ -708,6 +712,7 @@ def display_image(image_path, label=None):
     global g_windowForImage
 
     logger.debug("display_image: " + image_path)
+    logToFile.debug("display_image: " + image_path)
 
     if label is None:
         print("Error: label is None")  
@@ -944,6 +949,7 @@ def main():
                         lastButtonPressedTime = time.time()
                         # print("stop random display " + str(lastButtonPressedTime))
                         randomDisplayMode = False
+                        logToFile.info("Button pressed")
 
                     else:
                         # if the last button press was more than 90 seconds ago, then display history
