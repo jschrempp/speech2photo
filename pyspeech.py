@@ -470,6 +470,8 @@ def getTranscript(wavFileName):
     loggerTrace.debug("Transcript object: " + str(responseTranscript))
 
     transcript = responseTranscript.text 
+    #remove trailing period
+    transcript = transcript.rstrip(".")
 
     loggerTrace.debug("Transcript text: " + transcript)
     logToFile.info("Transcript text: " + transcript)
