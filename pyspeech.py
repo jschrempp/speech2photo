@@ -534,6 +534,9 @@ def getAbstractForImageGen(inputText):
         compiled = re.compile(re.escape(phrase), re.IGNORECASE)
         res = compiled.sub(" ", abstract)
         abstract = str(res) 
+    
+    #remove trailing period
+    abstract = abstract.rstrip(".")
 
     logger.info("Abstract: " + abstract)
     logToFile.info("Abstract: " + abstract)
@@ -548,7 +551,7 @@ def getImageURL(phrase):
     random.shuffle(IMAGE_MODIFIERS)
   
     # create the prompt for the image generator
-    prompt = f"Generate a picture {IMAGE_MODIFIERS[0]} without any text or writing in the image for the following concept: {phrase}"
+    prompt = f"Generate a picture {IMAGE_MODIFIERS[0]} without any text or writing in the image for the following: {phrase}"
 
     logger.info("Generating image...")
     logger.info("image prompt: " + prompt)
