@@ -938,6 +938,7 @@ def main():
     create_instructions_window()
 
     labelForMessageDisplay = create_message_window()
+    display_text_in_message_window()
 
     # create the window to display the images
     labelForImageDisplay = create_image_window()
