@@ -737,8 +737,8 @@ def create_message_window():
     screen_width = g_windowForMessages.winfo_screenwidth()
     screen_height = g_windowForMessages.winfo_screenheight()
     g_windowForMessages.geometry("+%d+%d" % (screen_width-800, screen_height*.4))
-    g_windowForMessages.minsize(200, 500)
-    g_windowForMessages.maxsize(500, 1000)
+    g_windowForMessages.minsize(500, 500)
+    g_windowForMessages.maxsize(1000, 1000)
 
     labelTextLong = tk.Label(g_windowForMessages, text="messages will go here",
                      font=("Helvetica", 28),
