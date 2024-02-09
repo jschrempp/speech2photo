@@ -740,7 +740,7 @@ def create_message_window():
     g_windowForMessages.minsize(500, 500)
     g_windowForMessages.maxsize(1000, 1000)
 
-    labelTextLong = tk.Label(g_windowForMessages, text="messages will go here",
+    labelTextLong = tk.Label(g_windowForMessages,
                      font=("Helvetica", 28),
                      justify=tk.CENTER,
                      width=80,
