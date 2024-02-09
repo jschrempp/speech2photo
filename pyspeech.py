@@ -1075,7 +1075,7 @@ def main():
 
                 if g.firstProcessStep < processStep.Audio:
                     # record audio from the default microphone
-                    display_text_in_message_window("Speak Now", labelForMessageDisplay)
+                    display_text_in_message_window("Speak Now\r\n", labelForMessageDisplay)
                     soundFileName = recordAudioFromMicrophone()
                     display_text_in_message_window("Recording Complete, now analyzing", labelForMessageDisplay)
 
