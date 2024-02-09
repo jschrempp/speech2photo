@@ -938,6 +938,7 @@ def main():
     create_instructions_window()
 
     labelForMessageDisplay = create_message_window()
+    display_text_in_message_window("Nothing to say yet", labelForMessageDisplay)
     display_text_in_message_window()
 
     # create the window to display the images
