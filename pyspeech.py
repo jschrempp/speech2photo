@@ -170,9 +170,10 @@ else:
 
 
 # Global reference to the windows
-# need to be outside the global class so that tkinter can access them
-g_windowForImage = None
+# need to be outside the global scope so that tkinter can access them
+g_windowForImages = None
 g_windowForInstructions = None
+g_windowForMessages = None
 
 # Global constants
 LOOPS_MAX = 10 # Set the number of times to loop when in auto mode
@@ -707,26 +708,83 @@ def create_instructions_window():
     label2.pack(side=tk.LEFT,padx=20)
     labelQRText.pack(side=tk.LEFT,padx=10)
 
+    g_windowForInstructions.update_idletasks()
+    g_windowForInstructions.update()
+
 def create_image_window():
     '''create a window to display the images; return a label to display the images'''
 
-    global g_windowForImage
+    global g_windowForImages
 
-    g_windowForImage = tk.Toplevel(root)
-    g_windowForImage.title("Images")
-    screen_width = g_windowForImage.winfo_screenwidth()
-    screen_height = g_windowForImage.winfo_screenheight()
-    g_windowForImage.geometry("+%d+%d" % (screen_width-1000, screen_height*.02))
-    label = tk.Label(g_windowForImage)
+    g_windowForImages = tk.Toplevel(root)
+    g_windowForImages.title("Images")
+    screen_width = g_windowForImages.winfo_screenwidth()
+    screen_height = g_windowForImages.winfo_screenheight()
+    g_windowForImages.geometry("+%d+%d" % (screen_width-1000, screen_height*.02))
+    label = tk.Label(g_windowForImages)
     label.configure(bg='#000000')
-    g_windowForImage.withdraw()  # Hide the window until needed
+    g_windowForImages.withdraw()  # Hide the window until needed
 
     return label
+
+def create_message_window():
+    '''create a window to display the messages; return a label to display the images'''
+
+    global g_windowForMessages
+
+    g_windowForMessages = tk.Toplevel(root, bg='#555555')
+    g_windowForMessages.title("Messages")
+    screen_width = g_windowForMessages.winfo_screenwidth()
+    screen_height = g_windowForMessages.winfo_screenheight()
+    g_windowForMessages.geometry("+%d+%d" % (screen_width-800, screen_height*.4))
+    g_windowForMessages.minsize(200, 500)
+    g_windowForMessages.maxsize(500, 1000)
+
+    labelTextLong = tk.Label(g_windowForMessages, text="messages will go here",
+                     font=("Helvetica", 28),
+                     justify=tk.CENTER,
+                     width=80,
+                     wraplength=400,
+                     bg='#555555',
+                     fg='#FFFFFF',
+                     )
+
+    frame = tk.Frame(g_windowForMessages, bg='#555555')
+
+    # center the label in the window    
+    labelTextLong.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+
+    # XXX labelTextLong.pack(side=tk.TOP)
+    frame.pack(fill=tk.X, pady=50)
+
+    g_windowForMessages.attributes('-topmost', 1)  # Make the window always appear on top
+    g_windowForMessages.withdraw()  # Hide the window until needed
+
+    return labelTextLong
+
+def display_text_in_message_window(message=None, labelToUse=None):
+    '''
+    display message in the message window
+    if labelToUse is None, then hide the window
+    '''
+    global g_windowForMessages
+      
+    if (labelToUse is None):
+
+        g_windowForMessages.withdraw() # Hide the message window
+        
+    else:
+
+        labelToUse.configure(text=message,)
+        labelToUse.pack() # Show the label
+        g_windowForMessages.deiconify() # Show the window now that it has a message
+        g_windowForMessages.update_idletasks()
+        g_windowForMessages.update()
 
 def display_image(image_path, label=None):
     '''display an image in the window using the label object'''
 
-    global g_windowForImage
+    global g_windowForImages
 
     logger.debug("display_image: " + image_path)
     logToFile.debug("display_image: " + image_path)
@@ -739,8 +797,8 @@ def display_image(image_path, label=None):
     try:
         img = Image.open(image_path)
         #resize the image to fit the window
-        screen_width = g_windowForImage.winfo_screenwidth()
-        screen_height = g_windowForImage.winfo_screenheight()
+        screen_width = g_windowForImages.winfo_screenwidth()
+        screen_height = g_windowForImages.winfo_screenheight()
         resizeFactor = 0.9 
         new_width = int(screen_height * resizeFactor * img.width / img.height)
         new_height = int(screen_height * resizeFactor)
@@ -755,7 +813,10 @@ def display_image(image_path, label=None):
         label.configure(image=photoImage)
         label.image = photoImage  # Keep a reference to the image to prevent it from being garbage collected
         label.pack() # Show the label
-        g_windowForImage.deiconify() # Show the window now that it has an image
+
+        g_windowForImages.deiconify() # Show the window now that it has an image
+        g_windowForImages.update_idletasks()
+        g_windowForImages.update()
 
     except Exception as e:
         print("Error with image file: " + image_path)
@@ -768,7 +829,7 @@ def display_image(image_path, label=None):
 def display_random_history_image(labelForImageDisplay):
     '''display a random image from the idleDisplayFiles in the window using the label object'''
 
-    global g_windowForImage
+    global g_windowForImages
 
     # list all files in the idleDisplayFiles folder
     idleDisplayFolder = "./idleDisplayFiles"
@@ -783,18 +844,18 @@ def display_random_history_image(labelForImageDisplay):
     display_image(idleDisplayFolder + "/" + imagesToDisplay[0], labelForImageDisplay)
     
     # let the tkinter window events happen
-    g_windowForImage.update_idletasks()
-    g_windowForImage.update()
+    g_windowForImages.update_idletasks()
+    g_windowForImages.update()
 
 
 def close_image_window():
     '''close the image window'''
 
-    global g_windowForImage
+    global g_windowForImages
 
-    if g_windowForImage is not None:
-        g_windowForImage.destroy()
-        g_windowForImage = None
+    if g_windowForImages is not None:
+        g_windowForImages.destroy()
+        g_windowForImages = None
 
 
 
@@ -876,9 +937,11 @@ def main():
         #Show instructions
     create_instructions_window()
 
+    labelForMessageDisplay = create_message_window()
+
     # create the window to display the images
     labelForImageDisplay = create_image_window()
-
+    display_random_history_image(labelForImageDisplay) # display a random image
 
     # create a directory if one does not exist
     if not os.path.exists("history"):
@@ -1012,7 +1075,9 @@ def main():
 
                 if g.firstProcessStep < processStep.Audio:
                     # record audio from the default microphone
+                    display_text_in_message_window("Speak Now", labelForMessageDisplay)
                     soundFileName = recordAudioFromMicrophone()
+                    display_text_in_message_window("Recording Complete, now analyzing", labelForMessageDisplay)
 
                     if g.isSaveFiles:
                         #copy the file to a new name with the time stamp
@@ -1048,6 +1113,9 @@ def main():
                     logger.info("Using transcript file: " + g.inputFileName)
 
                 changeBlinkRate(BLINK_STOP)
+
+                msg = "I heard you say:\n\r " + transcript + "\n\r\n\rNow we wait for the images."
+                display_text_in_message_window(msg, labelForMessageDisplay)
 
             # Summary - set summary
             if g.firstProcessStep <= processStep.Summarize:
@@ -1155,12 +1223,13 @@ def main():
 
             try:
                 display_image(newFileName, labelForImageDisplay)
+                display_text_in_message_window() # Hide the message window
             except Exception as e:
                 logger.error("Error displaying image: " + newFileName, exc_info=True)
                 logger.error(e)
             
-            g_windowForImage.update_idletasks()
-            g_windowForImage.update()
+            g_windowForImages.update_idletasks()
+            g_windowForImages.update()
             
             changeBlinkRate(BLINK_STOP)
 
@@ -1178,8 +1247,8 @@ def main():
                     time.sleep(g.loopDelay)
 
             # let the tkinter window events happen
-            g_windowForImage.update_idletasks()
-            g_windowForImage.update()
+            g_windowForImages.update_idletasks()
+            g_windowForImages.update()
             
             # end of loop
 
