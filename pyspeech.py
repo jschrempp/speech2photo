@@ -659,8 +659,13 @@ def generateErrorImage(e, timestr):
 
     return newFileName
 
+''' 
+Window functions
+'''
 def create_instructions_window():
-    '''create and display a window with static instructions'''
+    '''
+    create and display a window with static instructions
+    '''
 
     global g_windowForInstructions
 
@@ -672,21 +677,21 @@ def create_instructions_window():
 
     g_windowForInstructions = tk.Toplevel(root, bg='#52837D')
     g_windowForInstructions.title("Instructions")
-    labelTextLong = tk.Label(g_windowForInstructions, text=INSTRUCTIONS_TEXT, 
-                     font=("Helvetica", 28),
-                     justify=tk.CENTER,
-                     width=80,
-                     wraplength=400,
-                     bg='#52837D',
-                     fg='#FFFFFF',
-                     )
     g_windowForInstructions.minsize(200, 500)
     g_windowForInstructions.maxsize(500, 1000)
     g_windowForInstructions.geometry("+50+0") 
 
-    frame = tk.Frame(g_windowForInstructions, bg='#52837D')
+    labelTextLong = tk.Label(g_windowForInstructions, text=INSTRUCTIONS_TEXT, 
+                     font=("Helvetica", 28),
+                     justify=tk.CENTER,
+                     wraplength=400,
+                     bg='#52837D',
+                     fg='#FFFFFF',
+                     )
+    labelTextLong.grid(row=0, column=0, columnspan=2, padx=20)
 
-    labelQRText = tk.Label(frame, text="Scan this QR code for instructions on how to "
+
+    labelQRText = tk.Label(g_windowForInstructions, text="Scan this QR code for instructions on how to "
                            + "make your own speech to photo generator.", 
                      font=("Helvetica", 18),
                      justify=tk.LEFT,
@@ -694,25 +699,26 @@ def create_instructions_window():
                      bg='#52837D',
                      fg='#FFFFFF',
                      )
+    labelQRText.grid(row=1, column=1, padx=10, pady=10)
 
     # add the image to the window
-    img = Image.open("S2PQR.png")
-    img = img.resize((150,150), Image.NEAREST)
-    photoImage = ImageTk.PhotoImage(img)
-    label2 = tk.Label(frame, image=photoImage,
-                     bg='#52837D')
-    label2.image = photoImage  # Keep a reference to the image to prevent it from being garbage collected
+    imgQR = Image.open("S2PQR.png")
+    imgQR = imgQR.resize((150,150), Image.NEAREST)
+    photoImage = ImageTk.PhotoImage(imgQR)
+    labelQR = tk.Label(g_windowForInstructions,
+                    image=photoImage,
+                    bg='#52837D')
+    labelQR.image = photoImage  # Keep a reference to the image to prevent it from being garbage collected
+    labelQR.grid(row=1, column=0, padx=10, pady=10)
 
-    labelTextLong.pack(side=tk.TOP)
-    frame.pack(fill=tk.X, pady=50)
-    label2.pack(side=tk.LEFT,padx=20)
-    labelQRText.pack(side=tk.LEFT,padx=10)
 
     g_windowForInstructions.update_idletasks()
     g_windowForInstructions.update()
 
 def create_image_window():
-    '''create a window to display the images; return a label to display the images'''
+    '''
+    create a window to display the images; return a label to display the images
+    '''
 
     global g_windowForImages
 
@@ -721,46 +727,53 @@ def create_image_window():
     screen_width = g_windowForImages.winfo_screenwidth()
     screen_height = g_windowForImages.winfo_screenheight()
     g_windowForImages.geometry("+%d+%d" % (screen_width-1000, screen_height*.02))
-    label = tk.Label(g_windowForImages)
-    label.configure(bg='#000000')
+    labelForImage = tk.Label(g_windowForImages)
+    labelForImage.configure(bg='#000000')
+    labelForImage.grid(row=0, column=0)
     g_windowForImages.withdraw()  # Hide the window until needed
 
-    return label
+    return labelForImage
 
 def create_message_window():
-    '''create a window to display the messages; return a label to display the images'''
-
+    '''
+    create a window to display the messages; return a label to display the images
+    '''
+    
     global g_windowForMessages
+    global g_windowForImages    # center the message window inside the image window
 
-    g_windowForMessages = tk.Toplevel(root, bg='#555555')
+    g_windowForMessages = tk.Toplevel(root, bg='#555555',
+                                      highlightcolor="#550055", 
+                                      highlightthickness=20)
     g_windowForMessages.title("Messages")
-    screen_width = g_windowForMessages.winfo_screenwidth()
-    screen_height = g_windowForMessages.winfo_screenheight()
-    g_windowForMessages.geometry("+%d+%d" % (screen_width-800, screen_height*.4))
-    g_windowForMessages.minsize(500, 500)
-    g_windowForMessages.maxsize(1000, 1000)
+
+    # center this window over the image window
+    messageWindowWidth = 500
+    messageWindowHeight = 500
+    messageWindowX = g_windowForImages.winfo_x() + (0.5*g_windowForImages.winfo_width()) - (0.5*messageWindowWidth)
+    messageWindowY = g_windowForImages.winfo_y() + (0.5*g_windowForImages.winfo_height()) - (0.5*messageWindowHeight)
+    g_windowForMessages.geometry("+%d+%d" % (messageWindowX,messageWindowY)) #   (screen_width-800, screen_height*.4))
+    g_windowForMessages.minsize(messageWindowWidth, messageWindowHeight)
+    g_windowForMessages.maxsize(messageWindowWidth, messageWindowHeight)
 
     labelTextLong = tk.Label(g_windowForMessages,
                      font=("Helvetica", 28),
                      justify=tk.CENTER,
-                     width=80,
-                     wraplength=400,
-                     bg='#555555',
-                     fg='#FFFFFF',
+                     wraplength=450,
+                     bg='#FFFFFF',
+                     fg='#000000',
                      )
 
-    frame = tk.Frame(g_windowForMessages, bg='#555555')
-
-    # center the label in the window    
-    labelTextLong.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-
-    # XXX labelTextLong.pack(side=tk.TOP)
-    frame.pack(fill=tk.X, pady=50)
+    # center the label in the message window, and fill the window  
+    labelTextLong.grid(column=0, row=0, ipadx=40, ipady=40, sticky=tk.NSEW, )
+    g_windowForMessages.grid_columnconfigure(0, weight=1)
+    g_windowForMessages.grid_rowconfigure(0, weight=1)
 
     g_windowForMessages.attributes('-topmost', 1)  # Make the window always appear on top
     g_windowForMessages.withdraw()  # Hide the window until needed
 
     return labelTextLong
+
 
 def display_text_in_message_window(message=None, labelToUse=None):
     '''
@@ -776,13 +789,15 @@ def display_text_in_message_window(message=None, labelToUse=None):
     else:
 
         labelToUse.configure(text=message,)
-        labelToUse.pack() # Show the label
         g_windowForMessages.deiconify() # Show the window now that it has a message
         g_windowForMessages.update_idletasks()
         g_windowForMessages.update()
 
+
 def display_image(image_path, label=None):
-    '''display an image in the window using the label object'''
+    '''
+    display an image in the window using the label object
+    '''
 
     global g_windowForImages
 
@@ -812,7 +827,7 @@ def display_image(image_path, label=None):
         photoImage = ImageTk.PhotoImage(img)
         label.configure(image=photoImage)
         label.image = photoImage  # Keep a reference to the image to prevent it from being garbage collected
-        label.pack() # Show the label
+        label.grid(row=0, column=0)
 
         g_windowForImages.deiconify() # Show the window now that it has an image
         g_windowForImages.update_idletasks()
@@ -937,14 +952,15 @@ def main():
         #Show instructions
     create_instructions_window()
 
-    labelForMessageDisplay = create_message_window()
-    display_text_in_message_window("Nothing to say yet", labelForMessageDisplay)
-    display_text_in_message_window()
-
     # create the window to display the images
     labelForImageDisplay = create_image_window()
     display_random_history_image(labelForImageDisplay) # display a random image
 
+    labelForMessageDisplay = create_message_window()
+  
+    display_text_in_message_window()
+
+    
     # create a directory if one does not exist
     if not os.path.exists("history"):
         os.makedirs("history")
