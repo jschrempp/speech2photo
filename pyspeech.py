@@ -171,8 +171,7 @@ else:
 
 # Global reference to the windows
 # need to be outside the global scope so that tkinter can access them
-g_windowForImages = None
-g_windowForInstructions = None
+g_windowMain = None
 g_windowForMessages = None
 
 # Global constants
@@ -662,12 +661,32 @@ def generateErrorImage(e, timestr):
 ''' 
 Window functions
 '''
-def create_instructions_window():
+def create_main_window():
+    global g_windowMain
+
+    g_windowMain = tk.Toplevel(root)
+    g_windowMain.title("Speech 2 Picture")
+    g_windowMain.protocol("WM_DELETE_WINDOW", quitButtonPressed)
+
+    # find the screen size and center the window
+    screen_width = g_windowMain.winfo_screenwidth()
+    screen_height = g_windowMain.winfo_screenheight()
+    g_windowMain.minsize(int(screen_width*.6), int(screen_height*.9))
+    g_windowMain.geometry("+%d+%d" % (screen_width*0.02, screen_height*0.02))
+    g_windowMain.configure(bg='#52837D')
+    update_main_window()
+
+def update_main_window():
+    global g_windowMain
+
+    g_windowMain.update_idletasks()
+    g_windowMain.update()
+
+def create_instructions_widget():
     '''
     create and display a window with static instructions
     '''
-
-    global g_windowForInstructions
+    global g_windowMain
 
     # Instructions text
     INSTRUCTIONS_TEXT = ('\r\nWelcome to\rSpeech 2 Picture\n\rWhen you are ready, press and release the'
@@ -675,62 +694,55 @@ def create_instructions_window():
                     + ' An image will appear shortly.'
                     + '\r\nUntil then, enjoy some previous images!')
 
-    g_windowForInstructions = tk.Toplevel(root, bg='#52837D')
-    g_windowForInstructions.title("Instructions")
-    g_windowForInstructions.minsize(200, 500)
-    g_windowForInstructions.maxsize(500, 1000)
-    g_windowForInstructions.geometry("+50+0") 
-
-    labelTextLong = tk.Label(g_windowForInstructions, text=INSTRUCTIONS_TEXT, 
+    labelTextLong = tk.Label(g_windowMain, text=INSTRUCTIONS_TEXT, 
                      font=("Helvetica", 28),
                      justify=tk.CENTER,
                      wraplength=400,
                      bg='#52837D',
                      fg='#FFFFFF',
                      )
-    labelTextLong.grid(row=0, column=0, columnspan=2, padx=20)
+    labelTextLong.grid(row=0, column=0, columnspan=2, padx=20, sticky=tk.W)
 
+    # add the QR to the window
+    imgQR = Image.open("S2PQR.png")
+    imgQR = imgQR.resize((150,150), Image.NEAREST)
+    photoImage = ImageTk.PhotoImage(imgQR)
+    labelQR = tk.Label(g_windowMain,
+                    image=photoImage,
+                    bg='#52837D')
+    labelQR.image = photoImage  # Keep a reference to the image to prevent it from being garbage collected
+    labelQR.grid(row=1, column=0, padx=10, pady=10, sticky=tk.W)
 
-    labelQRText = tk.Label(g_windowForInstructions, text="Scan this QR code for instructions on how to "
-                           + "make your own speech to photo generator.", 
+    # add QR instructions to the window
+    labelQRText = tk.Label(g_windowMain, text="Scan this QR code for instructions on how to "
+                           + "make your own speech to picture generator.", 
                      font=("Helvetica", 18),
                      justify=tk.LEFT,
                      wraplength=280,
                      bg='#52837D',
                      fg='#FFFFFF',
                      )
-    labelQRText.grid(row=1, column=1, padx=10, pady=10)
+    labelQRText.grid(row=1, column=1, padx=10, pady=10, sticky=tk.W)
 
-    # add the image to the window
-    imgQR = Image.open("S2PQR.png")
-    imgQR = imgQR.resize((150,150), Image.NEAREST)
-    photoImage = ImageTk.PhotoImage(imgQR)
-    labelQR = tk.Label(g_windowForInstructions,
-                    image=photoImage,
-                    bg='#52837D')
-    labelQR.image = photoImage  # Keep a reference to the image to prevent it from being garbage collected
-    labelQR.grid(row=1, column=0, padx=10, pady=10)
+    # add a button to the window
+    buttonQuit = tk.Button(g_windowMain, text="Quit", command=quitButtonPressed,
+                            font=("Helvetica", 24), 
+                            bg='#FF0000', fg='#000000')
+    buttonQuit.grid(row=2, column=0, columnspan=2, padx=20, pady=20, sticky=tk.E)
 
 
-    g_windowForInstructions.update_idletasks()
-    g_windowForInstructions.update()
+    update_main_window()
 
-def create_image_window():
+def create_image_widget():
     '''
     create a window to display the images; return a label to display the images
     '''
+    global g_windowMain
 
-    global g_windowForImages
-
-    g_windowForImages = tk.Toplevel(root)
-    g_windowForImages.title("Images")
-    screen_width = g_windowForImages.winfo_screenwidth()
-    screen_height = g_windowForImages.winfo_screenheight()
-    g_windowForImages.geometry("+%d+%d" % (screen_width-1000, screen_height*.02))
-    labelForImage = tk.Label(g_windowForImages)
-    labelForImage.configure(bg='#000000')
-    labelForImage.grid(row=0, column=0)
-    g_windowForImages.withdraw()  # Hide the window until needed
+    labelForImage = tk.Label(g_windowMain)
+    labelForImage.configure(bg='#000000', highlightcolor="#f4ff55", 
+                                highlightthickness=10)
+    labelForImage.grid(row=0, column=3, rowspan=3, padx=(100,10), pady=10, sticky=tk.W)
 
     return labelForImage
 
@@ -738,11 +750,10 @@ def create_message_window():
     '''
     create a window to display the messages; return a label to display the images
     '''
-    
+    global g_windowMain
     global g_windowForMessages
-    global g_windowForImages    # center the message window inside the image window
-
-    g_windowForMessages = tk.Toplevel(root, bg='#555555',
+    
+    g_windowForMessages = tk.Toplevel(root, bg='#555500',
                                       highlightcolor="#550055", 
                                       highlightthickness=20)
     g_windowForMessages.title("Messages")
@@ -750,24 +761,35 @@ def create_message_window():
     # center this window over the image window
     messageWindowWidth = 500
     messageWindowHeight = 500
-    messageWindowX = g_windowForImages.winfo_x() + (0.5*g_windowForImages.winfo_width()) - (0.5*messageWindowWidth)
-    messageWindowY = g_windowForImages.winfo_y() + (0.5*g_windowForImages.winfo_height()) - (0.5*messageWindowHeight)
-    g_windowForMessages.geometry("+%d+%d" % (messageWindowX,messageWindowY)) #   (screen_width-800, screen_height*.4))
+    messageWindowX = g_windowMain.winfo_x() + (0.5*g_windowMain.winfo_width()) - (0.5*messageWindowWidth)
+    messageWindowY = g_windowMain.winfo_y() + (0.5*g_windowMain.winfo_height()) - (0.5*messageWindowHeight)
+    g_windowForMessages.geometry("+%d+%d" % (messageWindowX,messageWindowY)) 
     g_windowForMessages.minsize(messageWindowWidth, messageWindowHeight)
     g_windowForMessages.maxsize(messageWindowWidth, messageWindowHeight)
 
-    labelTextLong = tk.Label(g_windowForMessages,
+    # Make cell column 0 row 0 expand to fill the window
+    g_windowForMessages.grid_columnconfigure(0, weight=1) 
+    g_windowForMessages.grid_rowconfigure(0, weight=1)
+
+
+    frameForMessage  = tk.Frame(g_windowForMessages, bg='#ff0000',
+                                highlightcolor="#ffff55", 
+                                highlightthickness=2)
+    frameForMessage.grid(row=0, column=0, sticky=tk.NSEW)
+    # make cell column 0 row 0 expand to fill the frame
+    frameForMessage.grid_columnconfigure(0, weight=1)
+    frameForMessage.grid_rowconfigure(0, weight=1)
+
+    labelTextLong = tk.Label(frameForMessage,
                      font=("Helvetica", 28),
                      justify=tk.CENTER,
-                     wraplength=450,
+                     wraplength=messageWindowWidth-80,
                      bg='#FFFFFF',
                      fg='#000000',
                      )
 
-    # center the label in the message window, and fill the window  
-    labelTextLong.grid(column=0, row=0, ipadx=40, ipady=40, sticky=tk.NSEW, )
-    g_windowForMessages.grid_columnconfigure(0, weight=1)
-    g_windowForMessages.grid_rowconfigure(0, weight=1)
+    # have the label fill the cell  
+    labelTextLong.grid(column=0, row=0, ipadx=5, ipady=5, sticky=tk.NSEW, )
 
     g_windowForMessages.attributes('-topmost', 1)  # Make the window always appear on top
     g_windowForMessages.withdraw()  # Hide the window until needed
@@ -799,7 +821,7 @@ def display_image(image_path, label=None):
     display an image in the window using the label object
     '''
 
-    global g_windowForImages
+    global g_windowMain
 
     logger.debug("display_image: " + image_path)
     logToFile.debug("display_image: " + image_path)
@@ -812,8 +834,7 @@ def display_image(image_path, label=None):
     try:
         img = Image.open(image_path)
         #resize the image to fit the window
-        screen_width = g_windowForImages.winfo_screenwidth()
-        screen_height = g_windowForImages.winfo_screenheight()
+        screen_height = g_windowMain.winfo_screenheight()
         resizeFactor = 0.9 
         new_width = int(screen_height * resizeFactor * img.width / img.height)
         new_height = int(screen_height * resizeFactor)
@@ -827,11 +848,8 @@ def display_image(image_path, label=None):
         photoImage = ImageTk.PhotoImage(img)
         label.configure(image=photoImage)
         label.image = photoImage  # Keep a reference to the image to prevent it from being garbage collected
-        label.grid(row=0, column=0)
 
-        g_windowForImages.deiconify() # Show the window now that it has an image
-        g_windowForImages.update_idletasks()
-        g_windowForImages.update()
+        update_main_window()
 
     except Exception as e:
         print("Error with image file: " + image_path)
@@ -842,9 +860,11 @@ def display_image(image_path, label=None):
     return label
 
 def display_random_history_image(labelForImageDisplay):
-    '''display a random image from the idleDisplayFiles in the window using the label object'''
+    '''
+    display a random image from the idleDisplayFiles in the window using the label object
+    '''
 
-    global g_windowForImages
+    global g_windowMain
 
     # list all files in the idleDisplayFiles folder
     idleDisplayFolder = "./idleDisplayFiles"
@@ -858,25 +878,14 @@ def display_random_history_image(labelForImageDisplay):
     random.shuffle(imagesToDisplay) # randomize the list
     display_image(idleDisplayFolder + "/" + imagesToDisplay[0], labelForImageDisplay)
     
-    # let the tkinter window events happen
-    g_windowForImages.update_idletasks()
-    g_windowForImages.update()
-
-
-def close_image_window():
-    '''close the image window'''
-
-    global g_windowForImages
-
-    if g_windowForImages is not None:
-        g_windowForImages.destroy()
-        g_windowForImages = None
-
+    update_main_window()
 
 
 
 def parseCommandLineArgs():
-    '''parse the command line arguments and set the global variables'''
+    '''
+    parse the command line arguments and set the global variables
+    '''
 
     # parse the command line arguments
     parser = argparse.ArgumentParser()
@@ -941,6 +950,14 @@ def parseCommandLineArgs():
             g.duration = 10
 
 
+def quitButtonPressed():
+    '''quit the program'''
+    global g_windowMain
+
+    g_windowMain.destroy()
+    exit(0)
+
+
 def main():
     # ----------------------
     # main program starts here
@@ -950,17 +967,18 @@ def main():
 
     #if not g_isMacOS:
         #Show instructions
-    create_instructions_window()
 
-    # create the window to display the images
-    labelForImageDisplay = create_image_window()
+    # create the main window
+    create_main_window()
+    create_instructions_widget()
+    labelForImageDisplay = create_image_widget()
+
     display_random_history_image(labelForImageDisplay) # display a random image
 
     labelForMessageDisplay = create_message_window()
   
-    display_text_in_message_window()
+    display_text_in_message_window() # hide the message window
 
-    
     # create a directory if one does not exist
     if not os.path.exists("history"):
         os.makedirs("history")
@@ -1246,8 +1264,7 @@ def main():
                 logger.error("Error displaying image: " + newFileName, exc_info=True)
                 logger.error(e)
             
-            g_windowForImages.update_idletasks()
-            g_windowForImages.update()
+            update_main_window()
             
             changeBlinkRate(BLINK_STOP)
 
@@ -1265,8 +1282,7 @@ def main():
                     time.sleep(g.loopDelay)
 
             # let the tkinter window events happen
-            g_windowForImages.update_idletasks()
-            g_windowForImages.update()
+            update_main_window()
             
             # end of loop
 
