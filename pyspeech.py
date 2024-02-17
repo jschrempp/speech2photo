@@ -661,7 +661,10 @@ def generateErrorImage(e, timestr):
 ''' 
 Window functions
 '''
-def create_main_window():
+def create_main_window(usingHardwareButton):
+    '''
+    Create the main window and return the label to display the images
+    '''
     global g_windowMain
 
     g_windowMain = tk.Toplevel(root)
@@ -671,23 +674,10 @@ def create_main_window():
     # find the screen size and center the window
     screen_width = g_windowMain.winfo_screenwidth()
     screen_height = g_windowMain.winfo_screenheight()
-    g_windowMain.minsize(int(screen_width*.6), int(screen_height*.9))
+    g_windowMain.minsize(int(screen_width*.8), int(screen_height*.9))
     g_windowMain.geometry("+%d+%d" % (screen_width*0.02, screen_height*0.02))
     g_windowMain.configure(bg='#52837D')
-    update_main_window()
-
-def update_main_window():
-    global g_windowMain
-
-    g_windowMain.update_idletasks()
-    g_windowMain.update()
-
-def create_instructions_widget():
-    '''
-    create and display a window with static instructions
-    '''
-    global g_windowMain
-
+   
     # Instructions text
     INSTRUCTIONS_TEXT = ('\r\nWelcome to\rSpeech 2 Picture\n\rWhen you are ready, press and release the'
                     + ' button. You will have 10 seconds to speak your instructions. Then wait.'
@@ -701,7 +691,7 @@ def create_instructions_widget():
                      bg='#52837D',
                      fg='#FFFFFF',
                      )
-    labelTextLong.grid(row=0, column=0, columnspan=2, padx=20, sticky=tk.W)
+    labelTextLong.grid(row=0, column=0, columnspan=2, padx=100, sticky=tk.W)
 
     # add the QR to the window
     imgQR = Image.open("S2PQR.png")
@@ -711,7 +701,7 @@ def create_instructions_widget():
                     image=photoImage,
                     bg='#52837D')
     labelQR.image = photoImage  # Keep a reference to the image to prevent it from being garbage collected
-    labelQR.grid(row=1, column=0, padx=10, pady=10, sticky=tk.W)
+    labelQR.grid(row=1, column=0, padx=(50,10), pady=10, sticky=tk.E)
 
     # add QR instructions to the window
     labelQRText = tk.Label(g_windowMain, text="Scan this QR code for instructions on how to "
@@ -724,27 +714,41 @@ def create_instructions_widget():
                      )
     labelQRText.grid(row=1, column=1, padx=10, pady=10, sticky=tk.W)
 
-    # add a button to the window
-    buttonQuit = tk.Button(g_windowMain, text="Quit", command=quitButtonPressed,
-                            font=("Helvetica", 24), 
-                            bg='#FF0000', fg='#000000')
-    buttonQuit.grid(row=2, column=0, columnspan=2, padx=20, pady=20, sticky=tk.E)
+    # add credits to the window
+    labelQRText = tk.Label(g_windowMain, text="Created by Jim Schrempp at Maker Nexus in Sunnyvale, California.",
+                     font=("Helvetica", 18),
+                     justify=tk.LEFT,
+                     #wraplength=280,
+                     bg='#52837D',
+                     fg='#FFFFFF',
+                     )
+    labelQRText.grid(row=2, column=0, columnspan=2, padx=50, pady=10, sticky=tk.W)
 
+    if not usingHardwareButton:
+        # add buttons for the GUI user
 
-    update_main_window()
-
-def create_image_widget():
-    '''
-    create a window to display the images; return a label to display the images
-    '''
-    global g_windowMain
+        # add a quit button to the window
+        buttonQuit = tk.Button(g_windowMain, text="Quit", command=quitButtonPressed,
+                                font=("Helvetica", 24), 
+                                bg='#FF0000', fg='#000000')
+        buttonQuit.grid(row=3, column=0, columnspan=2, padx=20, pady=20, sticky=tk.E)
 
     labelForImage = tk.Label(g_windowMain)
     labelForImage.configure(bg='#000000', highlightcolor="#f4ff55", 
                                 highlightthickness=10)
-    labelForImage.grid(row=0, column=3, rowspan=3, padx=(100,10), pady=10, sticky=tk.W)
+    labelForImage.grid(row=0, column=3, rowspan=4, padx=(100,10), pady=10, sticky=tk.W)
+
+    update_main_window()
 
     return labelForImage
+   
+
+def update_main_window():
+    global g_windowMain
+
+    g_windowMain.update_idletasks()
+    g_windowMain.update()
+
 
 def create_message_window():
     '''
@@ -964,36 +968,30 @@ def main():
     #
     #
     # ----------------------
-
-    #if not g_isMacOS:
-        #Show instructions
-
-    # create the main window
-    create_main_window()
-    create_instructions_widget()
-    labelForImageDisplay = create_image_widget()
-
-    display_random_history_image(labelForImageDisplay) # display a random image
-
-    labelForMessageDisplay = create_message_window()
-  
-    display_text_in_message_window() # hide the message window
-
+   
     # create a directory if one does not exist
     if not os.path.exists("history"):
         os.makedirs("history")
     if not os.path.exists("errors"):
         os.makedirs("errors")
 
-
     parseCommandLineArgs()
 
-    # if true, we had an error and want to just go back to the top of the loop
-    g.abortThisIteration = False
+    # create the main window
+    labelForImageDisplay = create_main_window(g.isUsingHardwareButtons)
+
+    display_random_history_image(labelForImageDisplay) # display a random image
+
+    # create the message window
+    labelForMessageDisplay = create_message_window()
+    display_text_in_message_window() # hide the message window
 
     # ----------------------
     # Main Loop 
     #
+
+    # if true, we had an error and want to just go back to the top of the loop
+    g.abortThisIteration = False
 
     done = False  # set to true to exit the loop
     g.loopDelay = 60 # delay between loops in seconds
@@ -1150,7 +1148,7 @@ def main():
 
                 changeBlinkRate(BLINK_STOP)
 
-                msg = "I heard you say:\n\r " + transcript + "\n\r\n\rNow we wait for the images."
+                msg = f'I heard you say:\n\r "{transcript}" \n\r\n\rNow we wait for the images.'
                 display_text_in_message_window(msg, labelForMessageDisplay)
 
             # Summary - set summary
