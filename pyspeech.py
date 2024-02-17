@@ -699,11 +699,11 @@ def create_main_window(usingHardwareButton):
     labelTextLong = tk.Label(g_windowMain, text=INSTRUCTIONS_TEXT, 
                      font=("Helvetica", 28),
                      justify=tk.CENTER,
-                     wraplength=400,
+                     wraplength=600,
                      bg='#52837D',
                      fg='#FFFFFF',
                      )
-    labelTextLong.grid(row=0, column=0, columnspan=2, padx=100, sticky=tk.W)
+    labelTextLong.grid(row=0, column=0, columnspan=2, padx=(50,25), sticky=tk.W)
 
     # add the QR to the window
     imgQR = Image.open("S2PQR.png")
@@ -724,7 +724,7 @@ def create_main_window(usingHardwareButton):
                      bg='#52837D',
                      fg='#FFFFFF',
                      )
-    labelQRText.grid(row=1, column=1, padx=10, pady=10, sticky=tk.W)
+    labelQRText.grid(row=1, column=1, padx=(10,50), pady=10, sticky=tk.W)
 
     # add credits to the window
     labelQRText = tk.Label(g_windowMain, text="Created by Jim Schrempp at Maker Nexus in Sunnyvale, California.",
