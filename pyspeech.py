@@ -118,6 +118,7 @@ Author: Jim Schrempp 2023
 
 Version History of significant changes:
 
+v 1.0 consolidated GUI into one window using tkinter grid and a pop up to show the transcript
 v 0.8 added "without any text or writing in the image" to the image prompt
 v 0.7 more code cleanup, improved image resizing for display size
       added QR code
@@ -553,7 +554,18 @@ def getImageURL(phrase):
     random.shuffle(IMAGE_MODIFIERS)
   
     # create the prompt for the image generator
-    prompt = f"Generate a picture {IMAGE_MODIFIERS[0]} without any text or writing in the image for the following: {phrase}"
+    modifierUsed = IMAGE_MODIFIERS[0]
+    # if phrase contains stylistic information
+    if ("in the style of" in phrase.lower() 
+            or "as a painting by" in phrase.lower() 
+            or "as a photograph by" in phrase.lower() 
+            or "as a sketch by" in phrase.lower() 
+            or "as a watercolor by" in phrase.lower()):
+        modifierUsed = ""
+        prompt = f"Generate a picture WITHOUT ANY TEXT OR WRITING IN THE PICTURE for the following: '{phrase}'"
+    else:
+        # add a random modifier to the prompt
+        prompt = f"Generate a picture {modifierUsed} WITHOUT ANY TEXT OR WRITING IN THE PICTURE for the following: '{phrase}'"
 
     logger.info("Generating image...")
     logger.info("image prompt: " + prompt)
@@ -577,7 +589,7 @@ def getImageURL(phrase):
     image_url[2] = responseImage.data[2].url
     image_url[3] = responseImage.data[3].url
 
-    return image_url, IMAGE_MODIFIERS[0]
+    return image_url, modifierUsed
 
 
 def postProcessImages(imageURLs, imageModifiers, keywords, timestr):
@@ -1250,10 +1262,6 @@ def main():
             # display the image
             changeBlinkRate(BLINK_SLOW)
             logger.info("Displaying image...")
-
-            # display the image with pillow
-            #image = Image.open(newFileName)
-            #image.show()
 
             try:
                 display_image(newFileName, labelForImageDisplay)
