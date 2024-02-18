@@ -168,13 +168,6 @@ else:
 
 
 
-
-
-# Global reference to the windows
-# need to be outside the global scope so that tkinter can access them
-g_windowMain = None
-g_windowForMessages = None
-
 # Global constants
 LOOPS_MAX = 10 # Set the number of times to loop when in auto mode
 
@@ -237,8 +230,8 @@ class processStep(IntEnum):
         Keywords = 4
         Image = 5
 
- # global variables
-class g_vars:
+ # global variables that should only be changed by command line arguments
+class g_args:
    
     # Set the duration of each recording in seconds
     duration = 120
@@ -263,8 +256,20 @@ class g_vars:
 
     # if true, then save files that are generated in the process - mostly a debug feature
     isSaveFiles = False
+
+
+
+# global window variables
+# be sure gw is declared as global in any routine that changes a window attribute
+class globalWindowVars:
+
+    windowMain = None
+    windowForMessages = None
     
-g = g_vars()
+    # when true, the program is quitting
+    isQuitting = False
+
+gw = globalWindowVars()
 
 # XXX client = OpenAI()  # must have set up your key in the shell as noted in comments above
 client = openai
@@ -365,7 +370,7 @@ def changeBlinkRate(blinkRate):
         pass
 
 
-def recordAudioFromMicrophone():
+def recordAudioFromMicrophone(duration):
     '''record duration seconds of audio from the default microphone to a file and return the sound file name'''
 
     soundFileName = 'recording.wav'
@@ -386,11 +391,11 @@ def recordAudioFromMicrophone():
 
         logger.debug('sample_rate: %d; channels: %d', sample_rate, channels)
 
-        logger.info("Recording %d seconds...", g.duration)
+        logger.info("Recording %d seconds...", duration)
         os.system('say "Recording."')
         # Record audio from the default microphone
         recording = sounddevice.rec(
-            int(g.duration * sample_rate), 
+            int(duration * sample_rate), 
             samplerate=sample_rate, 
             channels=channels
             )
@@ -463,7 +468,8 @@ def getTranscript(wavFileName):
     # transcribe the recording
     logger.info("Transcribing...")
     audio_file= open(wavFileName, "rb")
-    responseTranscript = client.audio.transcriptions.create(
+    # used to use transcription.create, but the text comes back in the language spoken
+    responseTranscript = client.audio.translations.create(
         model="whisper-1", 
         file=audio_file)
 
@@ -677,18 +683,18 @@ def create_main_window(usingHardwareButton):
     '''
     Create the main window and return the label to display the images
     '''
-    global g_windowMain
+    global gw   # so that the changes made in here will affect the global variable
 
-    g_windowMain = tk.Toplevel(root)
-    g_windowMain.title("Speech 2 Picture")
-    g_windowMain.protocol("WM_DELETE_WINDOW", quitButtonPressed)
-
+    gw.windowMain = tk.Toplevel(root)
+    gw.windowMain.title("Speech 2 Picture")
+    gw.windowMain.protocol("WM_DELETE_WINDOW", quitButtonPressed)
+    
     # find the screen size and center the window
-    screen_width = g_windowMain.winfo_screenwidth()
-    screen_height = g_windowMain.winfo_screenheight()
-    g_windowMain.minsize(int(screen_width*.8), int(screen_height*.9))
-    g_windowMain.geometry("+%d+%d" % (screen_width*0.02, screen_height*0.02))
-    g_windowMain.configure(bg='#52837D')
+    screen_width = gw.windowMain.winfo_screenwidth()
+    screen_height = gw.windowMain.winfo_screenheight()
+    gw.windowMain.minsize(int(screen_width*.8), int(screen_height*.9))
+    gw.windowMain.geometry("+%d+%d" % (screen_width*0.02, screen_height*0.02))
+    gw.windowMain.configure(bg='#52837D')
    
     # Instructions text
     INSTRUCTIONS_TEXT = ('\r\nWelcome to\rSpeech 2 Picture\n\rWhen you are ready, press and release the'
@@ -696,7 +702,7 @@ def create_main_window(usingHardwareButton):
                     + ' An image will appear shortly.'
                     + '\r\nUntil then, enjoy some previous images!')
 
-    labelTextLong = tk.Label(g_windowMain, text=INSTRUCTIONS_TEXT, 
+    labelTextLong = tk.Label(gw.windowMain, text=INSTRUCTIONS_TEXT, 
                      font=("Helvetica", 28),
                      justify=tk.CENTER,
                      wraplength=600,
@@ -709,14 +715,14 @@ def create_main_window(usingHardwareButton):
     imgQR = Image.open("S2PQR.png")
     imgQR = imgQR.resize((150,150), Image.NEAREST)
     photoImage = ImageTk.PhotoImage(imgQR)
-    labelQR = tk.Label(g_windowMain,
+    labelQR = tk.Label(gw.windowMain,
                     image=photoImage,
                     bg='#52837D')
     labelQR.image = photoImage  # Keep a reference to the image to prevent it from being garbage collected
     labelQR.grid(row=1, column=0, padx=(50,10), pady=10, sticky=tk.E)
 
     # add QR instructions to the window
-    labelQRText = tk.Label(g_windowMain, text="Scan this QR code for instructions on how to "
+    labelQRText = tk.Label(gw.windowMain, text="Scan this QR code for instructions on how to "
                            + "make your own speech to picture generator.", 
                      font=("Helvetica", 18),
                      justify=tk.LEFT,
@@ -727,25 +733,25 @@ def create_main_window(usingHardwareButton):
     labelQRText.grid(row=1, column=1, padx=(10,50), pady=10, sticky=tk.W)
 
     # add credits to the window
-    labelQRText = tk.Label(g_windowMain, text="Created by Jim Schrempp at Maker Nexus in Sunnyvale, California.",
+    labelCreditsText = tk.Label(gw.windowMain, text="Created by Jim Schrempp at Maker Nexus in Sunnyvale, California.",
                      font=("Helvetica", 18),
                      justify=tk.LEFT,
-                     #wraplength=280,
+                     wraplength=300,
                      bg='#52837D',
                      fg='#FFFFFF',
                      )
-    labelQRText.grid(row=2, column=0, columnspan=2, padx=50, pady=10, sticky=tk.W)
+    labelCreditsText.grid(row=2, column=0, columnspan=2, padx=50, pady=10, sticky=tk.W)
 
     if not usingHardwareButton:
         # add buttons for the GUI user
 
         # add a quit button to the window
-        buttonQuit = tk.Button(g_windowMain, text="Quit", command=quitButtonPressed,
+        buttonQuit = tk.Button(gw.windowMain, text="Quit", command=quitButtonPressed,
                                 font=("Helvetica", 24), 
                                 bg='#FF0000', fg='#000000')
         buttonQuit.grid(row=3, column=0, columnspan=2, padx=20, pady=20, sticky=tk.E)
 
-    labelForImage = tk.Label(g_windowMain)
+    labelForImage = tk.Label(gw.windowMain)
     labelForImage.configure(bg='#000000', highlightcolor="#f4ff55", 
                                 highlightthickness=10)
     labelForImage.grid(row=0, column=3, rowspan=4, padx=(100,10), pady=10, sticky=tk.W)
@@ -756,39 +762,46 @@ def create_main_window(usingHardwareButton):
    
 
 def update_main_window():
-    global g_windowMain
+    global gw
 
-    g_windowMain.update_idletasks()
-    g_windowMain.update()
+    gw.windowMain.update_idletasks()
+    gw.windowMain.update()
 
+def quitButtonPressed():
+    '''quit the program'''
+    global gw
+
+    gw.isQuitting = True
+    gw.windowMain.destroy()
+    gw.windowForMessages.destroy()
+    exit(0)
 
 def create_message_window():
     '''
     create a window to display the messages; return a label to display the images
     '''
-    global g_windowMain
-    global g_windowForMessages
+    global gw  # so that the changes made in here will affect the global variable
     
-    g_windowForMessages = tk.Toplevel(root, bg='#555500',
+    gw.windowForMessages = tk.Toplevel(root, bg='#555500',
                                       highlightcolor="#550055", 
                                       highlightthickness=20)
-    g_windowForMessages.title("Messages")
+    gw.windowForMessages.title("Messages")
 
     # center this window over the image window
     messageWindowWidth = 500
     messageWindowHeight = 500
-    messageWindowX = g_windowMain.winfo_x() + (0.5*g_windowMain.winfo_width()) - (0.5*messageWindowWidth)
-    messageWindowY = g_windowMain.winfo_y() + (0.5*g_windowMain.winfo_height()) - (0.5*messageWindowHeight)
-    g_windowForMessages.geometry("+%d+%d" % (messageWindowX,messageWindowY)) 
-    g_windowForMessages.minsize(messageWindowWidth, messageWindowHeight)
-    g_windowForMessages.maxsize(messageWindowWidth, messageWindowHeight)
+    messageWindowX = gw.windowMain.winfo_x() + (0.5*gw.windowMain.winfo_width()) - (0.5*messageWindowWidth)
+    messageWindowY = gw.windowMain.winfo_y() + (0.5*gw.windowMain.winfo_height()) - (0.5*messageWindowHeight)
+    gw.windowForMessages.geometry("+%d+%d" % (messageWindowX,messageWindowY)) 
+    gw.windowForMessages.minsize(messageWindowWidth, messageWindowHeight)
+    gw.windowForMessages.maxsize(messageWindowWidth, messageWindowHeight)
 
     # Make cell column 0 row 0 expand to fill the window
-    g_windowForMessages.grid_columnconfigure(0, weight=1) 
-    g_windowForMessages.grid_rowconfigure(0, weight=1)
+    gw.windowForMessages.grid_columnconfigure(0, weight=1) 
+    gw.windowForMessages.grid_rowconfigure(0, weight=1)
 
 
-    frameForMessage  = tk.Frame(g_windowForMessages, bg='#ff0000',
+    frameForMessage  = tk.Frame(gw.windowForMessages, bg='#ff0000',
                                 highlightcolor="#ffff55", 
                                 highlightthickness=2)
     frameForMessage.grid(row=0, column=0, sticky=tk.NSEW)
@@ -807,8 +820,8 @@ def create_message_window():
     # have the label fill the cell  
     labelTextLong.grid(column=0, row=0, ipadx=5, ipady=5, sticky=tk.NSEW, )
 
-    g_windowForMessages.attributes('-topmost', 1)  # Make the window always appear on top
-    g_windowForMessages.withdraw()  # Hide the window until needed
+    gw.windowForMessages.attributes('-topmost', 1)  # Make the window always appear on top
+    gw.windowForMessages.withdraw()  # Hide the window until needed
 
     return labelTextLong
 
@@ -818,18 +831,18 @@ def display_text_in_message_window(message=None, labelToUse=None):
     display message in the message window
     if labelToUse is None, then hide the window
     '''
-    global g_windowForMessages
+    global gw
       
     if (labelToUse is None):
 
-        g_windowForMessages.withdraw() # Hide the message window
+        gw.windowForMessages.withdraw() # Hide the message window
         
     else:
 
         labelToUse.configure(text=message,)
-        g_windowForMessages.deiconify() # Show the window now that it has a message
-        g_windowForMessages.update_idletasks()
-        g_windowForMessages.update()
+        gw.windowForMessages.deiconify() # Show the window now that it has a message
+        gw.windowForMessages.update_idletasks()
+        gw.windowForMessages.update()
 
 
 def display_image(image_path, label=None):
@@ -837,7 +850,7 @@ def display_image(image_path, label=None):
     display an image in the window using the label object
     '''
 
-    global g_windowMain
+    global gw
 
     logger.debug("display_image: " + image_path)
     logToFile.debug("display_image: " + image_path)
@@ -850,7 +863,7 @@ def display_image(image_path, label=None):
     try:
         img = Image.open(image_path)
         #resize the image to fit the window
-        screen_height = g_windowMain.winfo_screenheight()
+        screen_height = gw.windowMain.winfo_screenheight()
         resizeFactor = 0.9 
         new_width = int(screen_height * resizeFactor * img.width / img.height)
         new_height = int(screen_height * resizeFactor)
@@ -880,8 +893,6 @@ def display_random_history_image(labelForImageDisplay):
     display a random image from the idleDisplayFiles in the window using the label object
     '''
 
-    global g_windowMain
-
     # list all files in the idleDisplayFiles folder
     idleDisplayFolder = "./idleDisplayFiles"
     idleDisplayFiles = os.listdir(idleDisplayFolder)
@@ -902,6 +913,7 @@ def parseCommandLineArgs():
     '''
     parse the command line arguments and set the global variables
     '''
+    rtn = g_args()
 
     # parse the command line arguments
     parser = argparse.ArgumentParser()
@@ -929,49 +941,48 @@ def parseCommandLineArgs():
 
 
     # if true, don't ask user for input, rely on hardware buttons
-    g.isUsingHardwareButtons = False
+    rtn.isUsingHardwareButtons = False
 
     if args.gokiosk:
         # jump into Kiosk mode
         print("\r\nKiosk mode enabled\r\n")
-        g.isUsingHardwareButtons = True
-        g.isAudioKeywords = True
-        g.numLoops = 1
-        g.loopDelay = 0
-        g.firstProcessStep = processStep.NoneSpecified
+        rtn.isUsingHardwareButtons = True
+        rtn.isAudioKeywords = True
+        rtn.numLoops = 1
+        rtn.loopDelay = 0
+        rtn.firstProcessStep = processStep.NoneSpecified
     else:
         # if we're given a file via the command line then start at that step
         # check in reverse order so that processStartStep will be the latest step for any set of arguments
-        g.firstProcessStep = processStep.NoneSpecified
+        rtn.firstProcessStep = processStep.NoneSpecified
         if args.image != 0: 
-            g.firstProcessStep = processStep.Image
-            g.inputFileName = args.image
+            rtn.firstProcessStep = processStep.Image
+            rtn.inputFileName = args.image
         elif args.keywords != 0: 
-            g.firstProcessStep = processStep.Keywords
-            g.inputFileName = args.keywords
+            rtn.firstProcessStep = processStep.Keywords
+            rtn.inputFileName = args.keywords
         elif args.summary != 0: 
-            g.firstProcessStep = processStep.Summarize
-            g.inputFileName = args.summary
+            rtn.firstProcessStep = processStep.Summarize
+            rtn.inputFileName = args.summary
         elif args.transcript != 0: 
-            g.firstProcessStep  = processStep.Transcribe
-            g.inputFileName = args.transcript
+            rtn.firstProcessStep  = processStep.Transcribe
+            rtn.inputFileName = args.transcript
         elif args.wav != 0:
-            g.firstProcessStep = processStep.Audio
-            g.inputFileName = args.wav
+            rtn.firstProcessStep = processStep.Audio
+            rtn.inputFileName = args.wav
 
         # if set, then record only 10 seconds of audio and use that for the keywords
-        g.isAudioKeywords = False
+        rtn.isAudioKeywords = False
         if args.onlykeywords:
-            g.isAudioKeywords = True
-            g.duration = 10
+            rtn.isAudioKeywords = True
+            rtn.duration = 10
 
+        rtn.isSaveFiles = False
+        if args.savefiles:
+            rtn.isSaveFiles = True
 
-def quitButtonPressed():
-    '''quit the program'''
-    global g_windowMain
+    return rtn
 
-    g_windowMain.destroy()
-    exit(0)
 
 
 def main():
@@ -981,16 +992,21 @@ def main():
     #
     # ----------------------
    
+    global gw # so that the changes made in here will affect the global variables
+
     # create a directory if one does not exist
     if not os.path.exists("history"):
         os.makedirs("history")
     if not os.path.exists("errors"):
         os.makedirs("errors")
+    if not os.path.exists("idleDisplayFiles"):
+        os.makedirs("idleDisplayFiles")
 
-    parseCommandLineArgs()
-
+    # args
+    settings = parseCommandLineArgs() # get the command line arguments
+ 
     # create the main window
-    labelForImageDisplay = create_main_window(g.isUsingHardwareButtons)
+    labelForImageDisplay = create_main_window(settings.isUsingHardwareButtons)
 
     display_random_history_image(labelForImageDisplay) # display a random image
 
@@ -1002,30 +1018,27 @@ def main():
     # Main Loop 
     #
 
-    # if true, we had an error and want to just go back to the top of the loop
-    g.abortThisIteration = False
-
-    done = False  # set to true to exit the loop
-    g.loopDelay = 60 # delay between loops in seconds
+  
+    settings.loopDelay = 60 # delay between loops in seconds
 
     randomDisplayMode = True 
 
     lastButtonPressedTime = 0
     lastImageDisplayedTime = 0
 
-    while not done:
+    while not gw.isQuitting:
 
-        if g.firstProcessStep > processStep.NoneSpecified:
+        if settings.firstProcessStep > processStep.NoneSpecified:
 
             # we have file parameters, so only loop once
-            g.numLoops = 1
-            g.loopDelay = 1   # no delay if we're not looping XXX
+            settings.numLoops = 1
+            settings.loopDelay = 1   # no delay if we're not looping XXX
 
         else:
             # no command line input parameters so get a command from the user
 
             inputCommand = None
-            if not g.isUsingHardwareButtons: 
+            if not settings.isUsingHardwareButtons: 
                 # print menu
                 print("\r\n\n\n")
                 print("Commands:")
@@ -1043,34 +1056,35 @@ def main():
                 if inputCommand == 'h':
                     # not in the menu except on RPi
                     # don't ask the user for input again, rely on hardware buttons
-                    g.isUsingHardwareButtons = True
+                    settings.isUsingHardwareButtons = True
                     print("\r\nHardware control enabled")
 
                 elif inputCommand == 'q': # quit
-                    done = True
-                    g.numLoops = 0
-                    g.loopDelay = 0
+                    gw.isQuitting = True
+                    settings.numLoops = 0
+                    settings.loopDelay = 0
 
                 elif inputCommand == 'a': # auto mode
-                    g.numLoops = LOOPS_MAX
-                    print("Will loop: " + str(g.numLoops) + " times")
+                    settings.numLoops = LOOPS_MAX
+                    print("Will loop: " + str(settings.numLoops) + " times")
                     
                 else: # default is once
-                    g.numLoops = 1
-                    g.loopDelay = 0
-                    g.firstProcessStep = processStep.NoneSpecified
+                    settings.numLoops = 1
+                    settings.loopDelay = 0
+                    settings.firstProcessStep = processStep.NoneSpecified
 
             # we can't use else here because the command menu input might set this value
-            if g.isUsingHardwareButtons:
+            if settings.isUsingHardwareButtons:
                 # we're not going to prompt the user for input, rely on hardware buttons
                 isButtonPressed = False
 
                 while not isButtonPressed:
                     # running on RPi
+                    update_main_window()
                     # read gpio pin, if pressed, then do a cycle of keyword input
                     if GPIO.input(BUTTON_GO) == BUTTON_PRESSED:
-                        g.isAudioKeywords = True
-                        g.numLoops = 1
+                        settings.isAudioKeywords = True
+                        settings.numLoops = 1
                         isButtonPressed = True
                         lastButtonPressedTime = time.time()
                         # print("stop random display " + str(lastButtonPressedTime))
@@ -1092,18 +1106,16 @@ def main():
                                 lastImageDisplayedTime = time.time()
 
 
-        if g.isAudioKeywords: 
+        if settings.isAudioKeywords: 
             # we are not going to extract keywords from the transcript
-            g.duration = 10
+            settings.duration = 10
 
         # we have a command. Either a command line file argument, a menu command, or a button press
 
         # loop will normally process audio and display the images
         # but if we're given a file then start at that step (processStep)
         # and numLoops should be 1
-        for i in range(0, g.numLoops, 1):
-
-            g.abortThisIteration = False
+        for i in range(0, settings.numLoops, 1):
 
             # format a time string to use as a file name
             timestr = time.strftime("%Y%m%d-%H%M%S")
@@ -1115,48 +1127,49 @@ def main():
             imageURLs = ""
 
             # Audio - get a recording.wav file
-            if g.firstProcessStep <= processStep.Audio:
+            if settings.firstProcessStep <= processStep.Audio:
 
                 changeBlinkRate(BLINK_FOR_AUDIO_CAPTURE)
 
-                if g.firstProcessStep < processStep.Audio:
+                if settings.firstProcessStep < processStep.Audio:
                     # record audio from the default microphone
                     display_text_in_message_window("Speak Now\r\nYou have 10 seconds", labelForMessageDisplay)
-                    soundFileName = recordAudioFromMicrophone()
+                    soundFileName = recordAudioFromMicrophone(settings.duration)
                     display_text_in_message_window("Recording Complete, now analyzing", labelForMessageDisplay)
 
-                    if g.isSaveFiles:
+                    if settings.isSaveFiles:
+                        print("Saving audio file: " + soundFileName)
                         #copy the file to a new name with the time stamp
                         shutil.copy(soundFileName, "history/" + timestr + "-recording" + ".wav")
                         soundFileName = "history/" + timestr + "-recording" + ".wav"
             
                 else:
                     # use the file specified by the wav argument
-                    soundFileName = g.inputFileName
-                    logger.info("Using audio file: " + g.inputFileName)
+                    soundFileName = settings.inputFileName
+                    logger.info("Using audio file: " + settings.inputFileName)
 
                 changeBlinkRate(BLINK_STOP)
         
             # Transcribe - set transcript
-            if g.firstProcessStep <= processStep.Transcribe:
+            if settings.firstProcessStep <= processStep.Transcribe:
             
                 changeBlinkRate(BLINK1)
 
-                if g.firstProcessStep < processStep.Transcribe:
+                if settings.firstProcessStep < processStep.Transcribe:
                     # transcribe the recording
                     transcript = getTranscript(soundFileName)
                     logToFile.info("Transcript: " + transcript)
 
-                    if g.isSaveFiles:
+                    if settings.isSaveFiles:
                         f = open("history/" + timestr + "-rawtranscript" + ".txt", "w")
                         f.write(transcript)
                         f.close()
                 else:
                     # use the text file specified 
-                    transcriptFile = open(g.inputFileName, "r")
+                    transcriptFile = open(settings.inputFileName, "r")
                     # read the transcript file
                     transcript = transcriptFile.read()
-                    logger.info("Using transcript file: " + g.inputFileName)
+                    logger.info("Using transcript file: " + settings.inputFileName)
 
                 changeBlinkRate(BLINK_STOP)
 
@@ -1164,7 +1177,7 @@ def main():
                 display_text_in_message_window(msg, labelForMessageDisplay)
 
             # Summary - set summary
-            if g.firstProcessStep <= processStep.Summarize:
+            if settings.firstProcessStep <= processStep.Summarize:
 
                 """ Skip summarization for now
                 changeBlinkRate(BLINK2)
@@ -1190,13 +1203,13 @@ def main():
 
 
             # Keywords - set keywords
-            if g.firstProcessStep <= processStep.Keywords:
+            if settings.firstProcessStep <= processStep.Keywords:
 
                 changeBlinkRate(BLINK3)
 
-                if not g.isAudioKeywords:
+                if not settings.isAudioKeywords:
 
-                    if g.firstProcessStep < processStep.Keywords:
+                    if settings.firstProcessStep < processStep.Keywords:
                         # extract the keywords from the summary
                         keywords = getAbstractForImageGen(transcript) 
                         logToFile.info("Keywords: " + keywords)
@@ -1208,10 +1221,10 @@ def main():
 
                     else:
                         # use the extract file specified by the extract argument
-                        summaryFile = open(g.inputFileName, "r")
+                        summaryFile = open(settings.inputFileName, "r")
                         # read the summary file
                         keywords = summaryFile.read()
-                        logger.info("Using abstract file: " + g.inputFileName)
+                        logger.info("Using abstract file: " + settings.inputFileName)
                     
                 else:
                     # use the transcript as the keywords
@@ -1220,11 +1233,11 @@ def main():
                 changeBlinkRate(BLINK_STOP)
 
             # Image - set imageURL
-            if g.firstProcessStep <= processStep.Image:
+            if settings.firstProcessStep <= processStep.Image:
 
                 changeBlinkRate(BLINK4)
 
-                if g.firstProcessStep < processStep.Image:
+                if settings.firstProcessStep < processStep.Image:
 
                     # use the keywords to generate images
                     try:
@@ -1277,15 +1290,15 @@ def main():
             # The end of the for loop
             changeBlinkRate(BLINK_STOP)
             # are we running the command line file args?
-            if g.firstProcessStep > processStep.NoneSpecified:
+            if settings.firstProcessStep > processStep.NoneSpecified:
                 # We've done one loop to process a file and we're all done
-                done = True
-                time.sleep(20)   # persist the image display for 20 seconds
+                gw.isQuitting = True
+                time.sleep(5)   # persist the image display for 5 seconds
             else:
                 #delay before the next for loop iteration
-                if not g.isUsingHardwareButtons:
-                    print("delaying " + str(g.loopDelay) + " seconds...")
-                    time.sleep(g.loopDelay)
+                if not settings.isUsingHardwareButtons:
+                    print("delaying " + str(settings.loopDelay) + " seconds...")
+                    time.sleep(settings.loopDelay)
 
             # let the tkinter window events happen
             update_main_window()
@@ -1306,8 +1319,10 @@ def main():
     print("\r\n")
 
 
+'''
+Beginning of execution
+'''
 logToFile.info("Starting Speech2Picture")
-
 
 try:
     main()
