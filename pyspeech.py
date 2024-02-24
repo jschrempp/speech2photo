@@ -78,15 +78,17 @@ Specific to Raspberry Pi:
 
             cp s2p.desktop ~/Desktop
 
+            then to get it to auto start on boot, do either
+            sudo cp Desktop/s2p.desktop /usr/share/xsessions/s2p.desktop
+
+            or if you on an a version older than Raspbian Debian GNU/Linux 12 (bookworm) try
+
             cd ..
             mkdir .config/lxsession
             mkdir .config/lxsession/LXDE-pi
             mkdir .config/lxsession/LXDE-pi/autostart
             cp Desktop/s2p.desktop .config/lxsession/LXDE-pi/autostart/s2p.desktop
 
-            OR
-
-            sudo cp Desktop/s2p.desktop /usr/share/xsessions/s2p.desktop
 
         2b. on MacOS install these
             brew install portaudio
@@ -105,6 +107,7 @@ Specific to Raspberry Pi:
         pip install pillow
         pip install pyaudio
         pip install RPi.GPIO
+     
 
     Note that when run you will see 10 or so lines of errors about sockets and JACKD and whatnot.
     Don't worry, it is still working. If you know how to fix this, please let me know.
@@ -230,7 +233,7 @@ class processStep(IntEnum):
         Keywords = 4
         Image = 5
 
- # global variables that should only be changed by command line arguments
+ # global variables 
 class g_args:
    
     # Set the duration of each recording in seconds
