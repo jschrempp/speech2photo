@@ -144,6 +144,8 @@ import re
 import os
 import random
 import tkinter as tk
+import json
+import string
 from enum import IntEnum
 from PIL import Image, ImageDraw, ImageFont, ImageTk
 
@@ -419,7 +421,7 @@ def recordAudioFromMicrophone(duration):
         recording.start()
         time.sleep(15)
         recording.stop()
-        soundfile.write('test1.wav',recording, 44100)
+        soundfile.write(filePrefix +'test1.wav',recording, 44100)
         """
 
         # all this crap because the ALSA library can't police itself
@@ -601,7 +603,7 @@ def getImageURL(phrase):
     return image_url, modifierUsed
 
 
-def postProcessImages(imageURLs, imageModifiers, keywords, timestr):
+def postProcessImages(imageURLs, imageModifiers, keywords, timestr, filePrefix):
     '''reformat the images for display and return the new file name'''
 
     # save the images from a urls into imgObjects[]
@@ -636,7 +638,7 @@ def postProcessImages(imageURLs, imageModifiers, keywords, timestr):
     draw.text((10, new_im.height - 30), imageCaption, (255,255,255), font=font)
 
     # save the combined image
-    newFileName = "history/" + timestr + "-image" + ".png"
+    newFileName = "history/" + filePrefix + timestr + "-image" + ".png"
     new_im.save(newFileName)
 
     return newFileName
@@ -1005,6 +1007,25 @@ def main():
     if not os.path.exists("idleDisplayFiles"):
         os.makedirs("idleDisplayFiles")
 
+    # read configuration file
+    if os.path.exists('s2pconfig.json'):
+        with open('s2pconfig.json') as f:
+            config = json.load(f)
+    else:
+        # create a default config file
+        # three random characters to make the file name unique
+        randomString = ''.join(random.choices(string.ascii_uppercase, k=3))
+        config = {
+            "Installation Id": randomString
+        }
+        writeToFile = open('s2pconfig.json', 'w')
+        json.dump(config, writeToFile)
+        writeToFile.close()
+
+    # this prefix is prepended to all files saved to allow us to know the source system
+    # when combining files from multiple systems
+    filePrefix = config['Installation Id'] + "-"
+
     # args
     settings = parseCommandLineArgs() # get the command line arguments
  
@@ -1143,8 +1164,8 @@ def main():
                     if settings.isSaveFiles:
                         print("Saving audio file: " + soundFileName)
                         #copy the file to a new name with the time stamp
-                        shutil.copy(soundFileName, "history/" + timestr + "-recording" + ".wav")
-                        soundFileName = "history/" + timestr + "-recording" + ".wav"
+                        shutil.copy(soundFileName, "history/" + filePrefix + timestr + "-recording" + ".wav")
+                        soundFileName = "history/" + filePrefix + timestr + "-recording" + ".wav"
             
                 else:
                     # use the file specified by the wav argument
@@ -1164,7 +1185,7 @@ def main():
                     logToFile.info("Transcript: " + transcript)
 
                     if settings.isSaveFiles:
-                        f = open("history/" + timestr + "-rawtranscript" + ".txt", "w")
+                        f = open("history/" + filePrefix + timestr + "-rawtranscript" + ".txt", "w")
                         f.write(transcript)
                         f.close()
                 else:
@@ -1190,7 +1211,7 @@ def main():
                     summary = getSummary(transcript)
 
                     if args.savefiles:
-                        f = open("history/" + timestr + "-summary" + ".txt", "w")
+                        f = open("history/" + filePrefix + timestr + "-summary" + ".txt", "w")
                         f.write(summary)
                         f.close()
 
@@ -1218,7 +1239,7 @@ def main():
                         logToFile.info("Keywords: " + keywords)
 
                         if g.isSaveFiles:
-                            f = open("history/" + timestr + "-keywords" + ".txt", "w")
+                            f = open("history/" + filePrefix + timestr + "-keywords" + ".txt", "w")
                             f.write(keywords)
                             f.close()
 
@@ -1249,7 +1270,8 @@ def main():
                         imageURLs = imagesInfo[0]
                         imageModifiers = imagesInfo[1]
 
-                        newFileName = postProcessImages(imageURLs, imageModifiers, keywords, timestr)
+                        # combine the images into one image
+                        newFileName = postProcessImages(imageURLs, imageModifiers, keywords, timestr, filePrefix)
 
                         imageURLs = "file://" + os.getcwd() + "/" + newFileName
                         logger.debug("imageURL: " + imageURLs)
@@ -1267,9 +1289,9 @@ def main():
                         logger.debug("Error Image Created: " + imageURLs)       
                 
                 else:
-                    imageURLs = [g.inputFileName]
-                    newFileName = g.inputFileName
-                    logger.info("Using image file: " + g.inputFileName )
+                    imageURLs = [settings.inputFileName]
+                    newFileName = settings.inputFileName
+                    logger.info("Using image file: " + settings.inputFileName )
 
                 changeBlinkRate(BLINK_STOP)
                 
