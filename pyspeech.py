@@ -42,6 +42,10 @@ Based on the WhisperFrame project idea on Hackaday.
 https://hackaday.com/2023/09/22/whisperframe-depicts-the-art-of-conversation/
 
 Specific to Raspberry Pi:
+    -1. Make sure your RPi is up on the latest release.
+        sudo apt update
+        sudo apt-get full-upgrade 
+
     0. clone repo
        git clone https://github.com/jschrempp/speech2picture.git speech2picture
 
@@ -79,9 +83,10 @@ Specific to Raspberry Pi:
             cp s2p.desktop ~/Desktop
 
             then to get it to auto start on boot, do either
-            sudo cp Desktop/s2p.desktop /usr/share/xsessions/s2p.desktop
+            sudo cp ~/Desktop/s2p.desktop /usr/share/xsessions/s2p.desktop
 
-            or if you on an a version older than Raspbian Debian GNU/Linux 12 (bookworm) try
+            OR if you on an a version older than Raspbian Debian GNU/Linux 12 (bookworm) try
+            (but you might have issues later). I really suggest the latest Raspbian OS.
 
             cd ..
             mkdir .config/lxsession
@@ -102,7 +107,7 @@ Specific to Raspberry Pi:
                   Then doublelick on "Install Certificates.command"
 
                     
-    3. install the following python packages    
+    3. install the following python packages (be sure you are in the virtual environment)   
         pip install openai 
         pip install pillow
         pip install pyaudio
