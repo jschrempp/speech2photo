@@ -1238,7 +1238,7 @@ def main():
                         keywords = getAbstractForImageGen(transcript) 
                         logToFile.info("Keywords: " + keywords)
 
-                        if g.isSaveFiles:
+                        if settings.isSaveFiles:
                             f = open("history/" + filePrefix + timestr + "-keywords" + ".txt", "w")
                             f.write(keywords)
                             f.close()
