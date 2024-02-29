@@ -214,7 +214,11 @@ IMAGE_MODIFIERS = [
 ]
 # see if the user has their own artists list
 if os.path.exists("ARTISTS_USER.txt"):
-    new_mods = customImageModifiers()
+    prefix = "in the style of "
+    new_mods = []
+    with open("ARTISTS_USER.txt",'r') as file:
+        for line in file:new_mods.append(prefix + str(line.strip()))
+    for line in new_mods: print(line)
     if len(new_mods) > 0:
         IMAGE_MODIFIERS = new_mods
 
@@ -477,13 +481,7 @@ def recordAudioFromMicrophone(duration):
 
     return soundFileName
 
-def customImageModifiers():
-    prefix = "in the style of "
-    new_mods = []
-    with open("ARTISTS_USER.txt",'r') as file:
-        for line in file:new_mods.append(prefix + str(line.strip()))
-    for line in new_mods: print(line)
-    return new_mods
+
 
 
 def getTranscript(wavFileName):
