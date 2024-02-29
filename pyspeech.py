@@ -212,6 +212,12 @@ IMAGE_MODIFIERS = [
     "in the style of Jean-Michel Basquiat",
     "in the style of Ruth Asawa",
 ]
+# see if the user has their own artists list
+if os.path.exists("ARTISTS_USER.txt"):
+    new_mods = customImageModifiers()
+    if len(new_mods) > 0:
+        IMAGE_MODIFIERS = new_mods
+
 
 # Define  constants for blinking the LED (onTime, offTime)
 BLINK_FAST = (0.1, 0.1)
@@ -470,6 +476,13 @@ def recordAudioFromMicrophone(duration):
         wf.close()
 
     return soundFileName
+
+def customImageModifiers():
+    prefix = "in the style of "
+    new_mods = []
+    with open("ARTISTS_USER.txt,'r') as file:
+        for line in file:new_mods.append(prefix + str(line.strip()))
+    return new_mods
 
 
 def getTranscript(wavFileName):
