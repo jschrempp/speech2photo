@@ -480,8 +480,9 @@ def recordAudioFromMicrophone(duration):
 def customImageModifiers():
     prefix = "in the style of "
     new_mods = []
-    with open("ARTISTS_USER.txt,'r') as file:
+    with open("ARTISTS_USER.txt",'r') as file:
         for line in file:new_mods.append(prefix + str(line.strip()))
+    for line in new_mods: print(line)
     return new_mods
 
 
