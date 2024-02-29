@@ -218,7 +218,6 @@ if os.path.exists("ARTISTS_USER.txt"):
     new_mods = []
     with open("ARTISTS_USER.txt",'r') as file:
         for line in file:new_mods.append(prefix + str(line.strip()))
-    for line in new_mods: print(line)
     if len(new_mods) > 0:
         IMAGE_MODIFIERS = new_mods
 
