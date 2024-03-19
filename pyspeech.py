@@ -187,7 +187,7 @@ PROMPT_FOR_ABSTRACTION = "What is the most interesting concept in the following 
 
 # image prompt modifiers
 # 'generate a picture [MODIFIER] for the following concept: ...'
-'''
+
 IMAGE_MODIFIERS = [
     "as a painting by Picasso",
     "as a watercolor by Picasso",
@@ -200,18 +200,13 @@ IMAGE_MODIFIERS = [
     "as a photograph by Ansel Adams",
     "as a painting by Edward Hopper",
     "as a painting by Norman Rockwell",
+    "in the style of steam punk",
+    "in the style of abstract expressionism",
+    "in the style of pop art",
+    "in the style of impressionism",
+    "in the style of Gustav Klimt",
 ]
-'''
-IMAGE_MODIFIERS = [
-    "in the style of Vincent Van Gogh",
-    "in the style of Cezanne",
-    "in the style of Paula Rego",
-    "in the style of Marcello Barenghi",
-    "in the style of Etel Adnan",
-    "in the style of Yinka Shonibare",
-    "in the style of Jean-Michel Basquiat",
-    "in the style of Ruth Asawa",
-]
+
 # see if the user has their own artists list
 if os.path.exists("ARTISTS_USER.txt"):
     prefix = "in the style of "
