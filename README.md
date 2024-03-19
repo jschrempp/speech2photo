@@ -46,6 +46,9 @@ Useful options:
 
 Command line options exist to let you pass in an existing file to one of the steps. For instance, if you want to experiment with how the final image files are displayed, -i <filename> will jump right to that step so you don't have to do all the previous steps.
 
+Typical execution:
+   python3 pyspeech.py -o
+
 To run this you need to get an OpenAI API key and put it into an environment variable OPENAI_API_KEY. See more
 details in the comments at the top of the source file.
 
@@ -58,3 +61,12 @@ works. Random images are now displayed from the ./idleDisplayFiles folder. New i
 saved in the ./history folder. As a result, new images will not be in the idle display rotation. We 
 suggest that you periodically review the files in the ./history folder and move acceptable images into
 the ./idleDisplayFiles folder.
+
+We suggest that you periodically look at the new files, remove any offensive ones, and add them to the 
+list of files for idle display. To do this remotely:
+
+1.   mkdir temp
+2.   cd temp
+3.   scp -r <user>@<ip address>:~/speech2picture/history .
+4.   examine the files you just downloaded and remove any you have concerns about
+5.   scp -r . <user>@<ip address>:~/speech2picture/idleDisplayFiles
