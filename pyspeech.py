@@ -147,6 +147,8 @@ import time
 import shutil
 import re
 import os
+import select
+import sys
 import random
 import tkinter as tk
 import json
@@ -238,11 +240,20 @@ if not g_isMacOS:
 # used by command line args to jump into the middle of the process
 class processStep(IntEnum):
         NoneSpecified = 0
-        Audio = 1
-        Transcribe = 2
-        Summarize = 3
-        Keywords = 4
-        Image = 5
+        CaptureAudio = 1
+        Audio = 2
+        Transcribe = 3
+        Summarize = 4
+        Keywords = 5
+        ImageCreate = 6
+        Done = 7
+        UseAudioFile = 8
+        UseTranscriptFile = 9
+        UseSummaryFile = 10
+        UseKeywordsFile = 11
+        UseImageFile = 12
+        DisplayImage = 13
+
 
  # global variables 
 class g_args:
@@ -256,14 +267,14 @@ class g_args:
     # When true don't extract keywords from the transcript, just use it for the image prompt
     isAudioKeywords = False
 
-    # when running continuous, this will limit the actual number of iterations
+    # when running auto mode (continuous), this will limit the actual number of iterations
     numLoops = 1
 
-    # when running continuous, this will delay between iterations
-    loopDelay = 0
+    # when running auto mode (continuous), this will delay between iterations
+    autoLoopDelay = 0
 
     # command line arguments can set this to jump into the middle of the process
-    firstProcessStep = processStep.Audio
+    nextProcessStep = processStep.CaptureAudio
 
     # if command line args specify to use a file, then set this to it
     inputFileName = None
@@ -279,6 +290,7 @@ class globalWindowVars:
 
     windowMain = None
     windowForMessages = None
+    windowForStatus = None
     
     # when true, the program is quitting
     isQuitting = False
@@ -373,6 +385,53 @@ if not g_isMacOS:
 
     # --------- end of Raspberry Pi specific code ----------------------------
 
+def showStatus(labelForStatusDisplay = None):
+    '''show the status of the program'''
+    print("showStatus") 
+    # get ip address and print it
+    if not g_isMacOS:
+        ipMsg = "IP Address: " + os.popen('hostname -I').read()
+        print(ipMsg)
+    else:
+        print ("IP address is not available on macOS.")
+        ipMsg = ""
+
+    directory = "history"
+    for dirpath, dirnames, historyFiles in os.walk(directory):
+        print(f"Number of files in {dirpath}: {len(historyFiles)}")
+
+    pngFiles = [os.path.join('history',file) for file in historyFiles if file.endswith(".png")]
+    numPngFiles = len(pngFiles)
+    print("Number of PNG files in history: " + str(numPngFiles))
+    historyCount = "Number of files in history: " + str(len(historyFiles))
+    print(historyCount)
+
+    # get the creation date of the oldest png file in the history directory
+    oldestFile = min(pngFiles, key=os.path.getctime)
+    # get the creation date of oldestFile   
+    oldestFileDate = "Oldest file in history: " + time.ctime(os.path.getctime(oldestFile))
+    print (oldestFileDate)
+
+    # get the number of files in randomImages directory
+    randomImagesFiles = os.listdir("idleDisplayFiles")
+    idleFileCount = "Number of files in idleDisplayFiles: " + str(len(randomImagesFiles))
+    print(idleFileCount)
+
+    msg = "Status \n" + ipMsg + "\n" + historyCount + "\n" + oldestFileDate + "\n" + idleFileCount  
+
+    display_text_in_status_window(msg, labelForStatusDisplay)
+    # slept for 10 seconds
+    time.sleep(10)
+    display_text_in_status_window()
+
+
+# create an array of keywords and functions to call when the keyword is found
+# the keyword is the first word in the command 
+voice_command_functions = {
+    "show status": showStatus,
+}
+
+
 
 def changeBlinkRate(blinkRate):
     '''change the LED blink rate. This routine isolates the RPi specific code'''
@@ -425,14 +484,7 @@ def recordAudioFromMicrophone(duration):
     else:
 
         # RPi
-        """
-        recording = sounddevice.Stream(channels=1, samplerate=44100)
-        recording.start()
-        time.sleep(15)
-        recording.stop()
-        soundfile.write(filePrefix +'test1.wav',recording, 44100)
-        """
-
+ 
         # all this crap because the ALSA library can't police itself
         ERROR_HANDLER_FUNC = CFUNCTYPE(None, c_char_p, c_int, c_char_p, c_int, c_char_p)
         def py_error_handler(filename, line, function, err, fmt):
@@ -841,6 +893,76 @@ def create_message_window():
 
     return labelTextLong
 
+def create_status_window():
+    '''
+    create a window to display the status messages; return a label to display the images
+    '''
+    global gw  # so that the changes made in here will affect the global variable
+    
+    gw.windowForStatus = tk.Toplevel(root, bg='#555500',
+                                      highlightcolor="#550055", 
+                                      highlightthickness=20)
+    gw.windowForStatus.title("Status")
+
+    # center this window over the image window
+    messageWindowWidth = 500
+    messageWindowHeight = 500
+    messageWindowX = gw.windowMain.winfo_x() + (0.5*gw.windowMain.winfo_width()) - (0.5*messageWindowWidth)
+    messageWindowY = gw.windowMain.winfo_y() + (0.5*gw.windowMain.winfo_height()) - (0.5*messageWindowHeight)
+    gw.windowForStatus.geometry("+%d+%d" % (messageWindowX,messageWindowY)) 
+    gw.windowForStatus.minsize(messageWindowWidth, messageWindowHeight)
+    gw.windowForStatus.maxsize(messageWindowWidth, messageWindowHeight)
+
+    # Make cell column 0 row 0 expand to fill the window
+    gw.windowForStatus.grid_columnconfigure(0, weight=1) 
+    gw.windowForStatus.grid_rowconfigure(0, weight=1)
+
+    frameForMessage  = tk.Frame(gw.windowForStatus, bg='#ff0000',
+                                highlightcolor="#ffff55", 
+                                highlightthickness=2)
+    frameForMessage.grid(row=0, column=0, sticky=tk.NSEW)
+    # make cell column 0 row 0 expand to fill the frame
+    frameForMessage.grid_columnconfigure(0, weight=1)
+    frameForMessage.grid_rowconfigure(0, weight=1)
+
+    labelTextLong2 = tk.Label(frameForMessage,
+                     font=("Helvetica", 28),
+                     justify=tk.CENTER,
+                     wraplength=messageWindowWidth-80,
+                     bg='#FFFFFF',
+                     fg='#000000',
+                     text="initial test message",
+                     )
+
+    # have the label fill the cell  
+    labelTextLong2.grid(column=0, row=0, ipadx=5, ipady=5, sticky=tk.NSEW, )
+
+    gw.windowForStatus.attributes('-topmost', 1)  # Make the window always appear on top
+    gw.windowForStatus.withdraw()  # Hide the window until needed
+
+    return labelTextLong2
+
+
+
+def display_text_in_status_window(message=None, labelToUse=None):
+    '''
+    display message in the message window
+    if labelToUse is None, then hide the window
+    '''
+    global gw
+      
+    if (labelToUse is None):
+
+        gw.windowForStatus.withdraw() # Hide the message window
+        
+    else:
+
+        print("display_text_in_status_window: " + message)
+        labelToUse.configure(text=message,)
+        gw.windowForStatus.deiconify() # Show the window now that it has a message
+
+    gw.windowForStatus.update_idletasks()
+    gw.windowForStatus.update()
 
 def display_text_in_message_window(message=None, labelToUse=None):
     '''
@@ -857,8 +979,9 @@ def display_text_in_message_window(message=None, labelToUse=None):
 
         labelToUse.configure(text=message,)
         gw.windowForMessages.deiconify() # Show the window now that it has a message
-        gw.windowForMessages.update_idletasks()
-        gw.windowForMessages.update()
+
+    gw.windowForMessages.update_idletasks()
+    gw.windowForMessages.update()
 
 
 def display_image(image_path, label=None):
@@ -908,21 +1031,27 @@ def display_random_history_image(labelForImageDisplay):
     '''
     display a random image from the idleDisplayFiles in the window using the label object
     '''
+    # static variable to hold last time an image was displayed
+    if not hasattr(display_random_history_image, "lastImageDisplayedTime"):
+        display_random_history_image.lastImageDisplayedTime = 0  # it doesn't exist yet, so initialize it
 
-    # list all files in the idleDisplayFiles folder
-    idleDisplayFolder = "./idleDisplayFiles"
-    idleDisplayFiles = os.listdir(idleDisplayFolder)
-    #remove any non-png files from Files
-    imagesToDisplay = []
-    for file in idleDisplayFiles:
-        if file.endswith(".png"):
-            #add to the list
-            imagesToDisplay.append(file)
-    random.shuffle(imagesToDisplay) # randomize the list
-    display_image(idleDisplayFolder + "/" + imagesToDisplay[0], labelForImageDisplay)
-    
-    update_main_window()
+    if time.time() - display_random_history_image.lastImageDisplayedTime > 15:
+        
+        display_random_history_image.lastImageDisplayedTime =  time.time()
 
+        # list all files in the idleDisplayFiles folder
+        idleDisplayFolder = "./idleDisplayFiles"
+        idleDisplayFiles = os.listdir(idleDisplayFolder)
+        #remove any non-png files from Files
+        imagesToDisplay = []
+        for file in idleDisplayFiles:
+            if file.endswith(".png"):
+                #add to the list
+                imagesToDisplay.append(file)
+        random.shuffle(imagesToDisplay) # randomize the list
+        display_image(idleDisplayFolder + "/" + imagesToDisplay[0], labelForImageDisplay)
+        
+        update_main_window()
 
 
 def parseCommandLineArgs():
@@ -965,26 +1094,26 @@ def parseCommandLineArgs():
         rtn.isUsingHardwareButtons = True
         rtn.isAudioKeywords = True
         rtn.numLoops = 1
-        rtn.loopDelay = 0
-        rtn.firstProcessStep = processStep.NoneSpecified
+        rtn.autoLoopDelay = 0
+        rtn.nextProcessStep = processStep.NoneSpecified
     else:
         # if we're given a file via the command line then start at that step
         # check in reverse order so that processStartStep will be the latest step for any set of arguments
-        rtn.firstProcessStep = processStep.NoneSpecified
+        rtn.nextProcessStep = processStep.NoneSpecified
         if args.image != 0: 
-            rtn.firstProcessStep = processStep.Image
+            rtn.nextProcessStep = processStep.UseImageFile
             rtn.inputFileName = args.image
         elif args.keywords != 0: 
-            rtn.firstProcessStep = processStep.Keywords
+            rtn.nextProcessStep = processStep.UseKeywordsFile
             rtn.inputFileName = args.keywords
         elif args.summary != 0: 
-            rtn.firstProcessStep = processStep.Summarize
+            rtn.nextProcessStep = processStep.UseSummaryFile
             rtn.inputFileName = args.summary
         elif args.transcript != 0: 
-            rtn.firstProcessStep  = processStep.Transcribe
+            rtn.nextProcessStep  = processStep.UseTranscriptFile
             rtn.inputFileName = args.transcript
         elif args.wav != 0:
-            rtn.firstProcessStep = processStep.Audio
+            rtn.nextProcessStep = processStep.UseAudioFile
             rtn.inputFileName = args.wav
 
         # if set, then record only 10 seconds of audio and use that for the keywords
@@ -999,6 +1128,224 @@ def parseCommandLineArgs():
 
     return rtn
 
+
+def audioToPicture(settings, labelForImageDisplay, labelForMessageDisplay, labelForStatusDisplay, filePrefix):
+    '''
+    main routine to process audio to picture
+    '''
+    # format a time string to use as a file name
+    timestr = time.strftime("%Y%m%d-%H%M%S")
+
+    soundFileName = ""
+    transcript = ""
+    summary = ""
+    keywords = ""
+    imageURLs = ""
+    newImageFileName = ""
+
+    nextProcessStep = settings.nextProcessStep
+    print ("nextProcessStep: " + str(nextProcessStep))
+
+
+    # first check to see if we are using a file for the input (from a command line argument)
+
+    if nextProcessStep == processStep.UseAudioFile:
+        # use the audio file specified 
+        soundFileName = settings.inputFileName
+        logger.info("Using audio file: " + settings.inputFileName)
+        nextProcessStep = processStep.Transcribe
+
+    if nextProcessStep == processStep.UseTranscriptFile:
+        # use the text file specified 
+        transcriptFile = open(settings.inputFileName, "r")
+        # read the transcript file
+        transcript = transcriptFile.read()
+        logger.info("Using transcript file: " + settings.inputFileName)
+        nextProcessStep = processStep.Summarize
+
+    if nextProcessStep == processStep.UseSummaryFile:
+        # use the text file specified 
+        summaryFile = open(settings.inputFileName, "r")
+        # read the transcript file
+        summary = summaryFile.read()
+        logger.info("Using summary file: " + settings.inputFileName)
+        nextProcessStep = processStep.ImageCreate
+
+    if nextProcessStep == processStep.UseKeywordsFile:
+        # use the extract file specified by the extract argument
+        summaryFile = open(settings.inputFileName, "r")
+        # read the summary file
+        keywords = summaryFile.read()
+        logger.info("Using abstract file: " + settings.inputFileName)
+        nextProcessStep = processStep.ImageCreate
+
+    if nextProcessStep == processStep.UseImageFile:
+        imageURLs = [settings.inputFileName]
+        newImageFileName = settings.inputFileName
+        logger.info("Using image file: " + settings.inputFileName )
+        nextProcessStep = processStep.DisplayImage
+
+
+    # Below is the pipeline for processing audio to picture. 
+    # Each step changes the nextProcessStep to the next step in the pipeline
+    # The code above can set the nextProcessStep to a specific step to skip steps in the pipeline
+
+    # Audio - get a recording.wav file
+    if nextProcessStep == processStep.CaptureAudio:
+
+        changeBlinkRate(BLINK_FOR_AUDIO_CAPTURE)
+
+        # record audio from the default microphone
+        display_text_in_message_window("Speak Now\r\nYou have 10 seconds", labelForMessageDisplay)
+        soundFileName = recordAudioFromMicrophone(settings.duration)
+        display_text_in_message_window("Recording Complete, now analyzing", labelForMessageDisplay)
+
+        if settings.isSaveFiles:
+            print("Saving audio file: " + soundFileName)
+            #copy the file to a new name with the time stamp
+            shutil.copy(soundFileName, "history/" + filePrefix + timestr + "-recording" + ".wav")
+            soundFileName = "history/" + filePrefix + timestr + "-recording" + ".wav"
+    
+        changeBlinkRate(BLINK_STOP)
+        nextProcessStep = processStep.Transcribe
+
+
+    # Transcribe - set transcript
+    if nextProcessStep == processStep.Transcribe:
+    
+        changeBlinkRate(BLINK1)
+
+        # transcribe the recording
+        transcript = getTranscript(soundFileName)
+        logToFile.info("Transcript: " + transcript)
+
+        if settings.isSaveFiles:
+            f = open("history/" + filePrefix + timestr + "-rawtranscript" + ".txt", "w")
+            f.write(transcript)
+            f.close()
+
+        msg = f'I heard you say:\n\r "{transcript}" \n\r\n\rNow we wait for the images.'
+        display_text_in_message_window(msg, labelForMessageDisplay)
+        nextProcessStep = processStep.Summarize
+
+        nextProcessStep = processStep.Summarize
+        changeBlinkRate(BLINK_STOP)
+    
+    # always check for a command in the transcript
+    # check for command
+    if transcript:
+        for keyword in voice_command_functions:
+            if keyword.lower() in transcript.lower():
+                # perform the corresponding action for the keyword
+                voice_command_functions[keyword](labelForStatusDisplay)
+                #delay before the next for loop iteration
+                time.sleep(10)
+                nextProcessStep = processStep.Done
+    
+    # Summary - set summary
+    if nextProcessStep == processStep.Summarize:
+        nextProcessStep = processStep.Keywords
+
+        """ Skip summarization for now
+        changeBlinkRate(BLINK2)
+
+        if args.summary == 0:
+            # summarize the transcript
+            summary = getSummary(transcript)
+
+            if args.savefiles:
+                f = open("history/" + filePrefix + timestr + "-summary" + ".txt", "w")
+                f.write(summary)
+                f.close()
+
+        else:
+            # use the text file specified by the transcript argument
+            summaryFile = open(summaryArg, "r")
+            # read the summary file
+            summary = summaryFile.read()
+            logger.info("Using summary file: " + summaryArg)
+        
+        changeBlinkRate(BLINK_STOP)
+        """
+
+
+    # Keywords - set keywords
+    if nextProcessStep == processStep.Keywords:
+
+        changeBlinkRate(BLINK3)
+
+        if not settings.isAudioKeywords:
+
+            # extract the keywords from the summary
+            keywords = getAbstractForImageGen(transcript) 
+            logToFile.info("Keywords: " + keywords)
+
+            if settings.isSaveFiles:
+                f = open("history/" + filePrefix + timestr + "-keywords" + ".txt", "w")
+                f.write(keywords)
+                f.close()
+        else:
+            keywords = transcript
+        
+        changeBlinkRate(BLINK_STOP)
+        nextProcessStep = processStep.ImageCreate
+
+    # Image - set imageURL
+    if nextProcessStep == processStep.ImageCreate:
+
+        changeBlinkRate(BLINK4)
+
+        # use the keywords to generate images
+        try:
+            imagesInfo = getImageURL(keywords)
+
+            imageURLs = imagesInfo[0]
+            imageModifiers = imagesInfo[1]
+
+            # combine the images into one image
+            newImageFileName = postProcessImages(imageURLs, imageModifiers, keywords, timestr, filePrefix)
+
+            imageURLs = "file://" + os.getcwd() + "/" + newImageFileName
+            logger.debug("imageURL: " + imageURLs)
+
+            logToFile.info("Image file: " + newImageFileName)
+
+        except Exception as e:
+
+            print ("AI Image Error: " + str(e))
+            logToFile.info("AI Image Error: " + str(e), exc_info=True)
+
+            newImageFileName = generateErrorImage(e, timestr)
+
+            imageURLs = "file://" + os.getcwd() + "/" + newImageFileName
+            logger.debug("Error Image Created: " + imageURLs)   
+
+        changeBlinkRate(BLINK_STOP)
+        nextProcessStep = processStep.DisplayImage    
+        
+
+    # Display - display imageURL
+    if nextProcessStep == processStep.DisplayImage:
+        changeBlinkRate(BLINK_SLOW)
+        logger.info("Displaying image...")
+
+        try:
+            display_image(newImageFileName, labelForImageDisplay)
+            display_text_in_message_window() # Hide the message window
+        except Exception as e:
+            logger.error("Error displaying image: " + newImageFileName, exc_info=True)
+            logger.error(e)
+    
+        update_main_window()
+        
+        changeBlinkRate(BLINK_STOP)
+        nextProcessStep = processStep.Done
+
+    if nextProcessStep == processStep.Done:
+        # done with processing
+        pass
+
+    return 
 
 
 def main():
@@ -1049,30 +1396,36 @@ def main():
     labelForMessageDisplay = create_message_window()
     display_text_in_message_window() # hide the message window
 
+    # create the status window
+    labelForStatusDisplay = create_status_window()
+    display_text_in_status_window() # hide the status window
+
     # ----------------------
     # Main Loop 
     #
 
   
-    settings.loopDelay = 60 # delay between loops in seconds
+    settings.autoLoopDelay = 60 # delay between loops in seconds
 
     randomDisplayMode = True 
 
-    lastButtonPressedTime = 0
-    lastImageDisplayedTime = 0
+    lastCommandTime = 0
+
+    display_random_history_image(labelForImageDisplay)
 
     while not gw.isQuitting:
 
-        if settings.firstProcessStep > processStep.NoneSpecified:
+        executeImageGeneration = True
+
+        if settings.nextProcessStep > processStep.CaptureAudio:
 
             # we have file parameters, so only loop once
             settings.numLoops = 1
-            settings.loopDelay = 1   # no delay if we're not looping XXX
+            settings.autoLoopDelay = 1   # no delay if we're not looping XXX
 
         else:
             # no command line input parameters so get a command from the user
 
-            inputCommand = None
             if not settings.isUsingHardwareButtons: 
                 # print menu
                 print("\r\n\n\n")
@@ -1084,31 +1437,59 @@ def main():
                     print("   h: Hardware control")
                 print("   q: Quit")
 
-                # BLOCKING CALL
-                # wait for the user to press a key
-                inputCommand = input("Type a command ...")
-
-                if inputCommand == 'h':
-                    # not in the menu except on RPi
-                    # don't ask the user for input again, rely on hardware buttons
-                    settings.isUsingHardwareButtons = True
-                    print("\r\nHardware control enabled")
-
-                elif inputCommand == 'q': # quit
-                    gw.isQuitting = True
-                    settings.numLoops = 0
-                    settings.loopDelay = 0
-
-                elif inputCommand == 'a': # auto mode
-                    settings.numLoops = LOOPS_MAX
-                    print("Will loop: " + str(settings.numLoops) + " times")
+                inputCommand = ''
+                while inputCommand == '':
                     
-                else: # default is once
-                    settings.numLoops = 1
-                    settings.loopDelay = 0
-                    settings.firstProcessStep = processStep.NoneSpecified
+                    if select.select([sys.stdin], [], [], 0)[0]:
+                        while sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
+                            inputCommand += sys.stdin.read(1)
+                        # remove whitespace
+                        inputCommand = inputCommand.strip()
 
-            # we can't use else here because the command menu input might set this value
+                        randomDisplayMode = False  # we have command input
+                        print("Command input: " + inputCommand)
+                        if inputCommand == 'h':
+                            # not in the menu except on RPi
+                            # don't ask the user for input again, rely on hardware buttons
+                            settings.isUsingHardwareButtons = True
+                            print("\r\nHardware control enabled")
+
+                        elif inputCommand == 'q': # quit
+                            gw.isQuitting = True
+                            settings.numLoops = 0
+                            settings.autoLoopDelay = 0
+
+                        elif inputCommand == 'a': # auto mode
+                            settings.numLoops = LOOPS_MAX
+                            print("Will loop: " + str(settings.numLoops) + " times")
+
+                        elif inputCommand == 'o': # once
+                            lastCommandTime = time.time()
+                            settings.nextProcessStep = processStep.CaptureAudio
+                            settings.numLoops = 1
+                            settings.autoLoopDelay = 0
+
+                        elif inputCommand == 'x': # experimental for testing out new features
+                            lastCommandTime = time.time()
+                            voice_command_functions["show status"](labelForStatusDisplay)
+                            executeImageGeneration = False
+                            
+                        else: # default is no action
+                            print("No action input " + inputCommand)
+                            inputCommand = ''
+
+                    # if the last command was more than 90 seconds ago
+                    if (time.time() - lastCommandTime > 90):
+                        lastCommandTime = time.time()
+                        randomDisplayMode = True 
+
+                    if randomDisplayMode:
+                        display_random_history_image(labelForImageDisplay)
+
+                    update_main_window()
+
+
+            # we can't use else from the if above because the command menu input might set this value
             if settings.isUsingHardwareButtons:
                 # we're not going to prompt the user for input, rely on hardware buttons
                 isButtonPressed = False
@@ -1121,24 +1502,20 @@ def main():
                         settings.isAudioKeywords = True
                         settings.numLoops = 1
                         isButtonPressed = True
-                        lastButtonPressedTime = time.time()
-                        # print("stop random display " + str(lastButtonPressedTime))
+                        lastCommandTime = time.time()
                         randomDisplayMode = False
                         logToFile.info("Button pressed")
+                        settings.nextProcessStep = processStep.CaptureAudio
 
                     else:
-                        # if the last button press was more than 90 seconds ago, then display history
-                        if (time.time() - lastButtonPressedTime > 90) and (not randomDisplayMode):
-                            # print ("start random display " + str(time.time()) + " " + str(lastButtonPressedTime))
-                            lastImageDisplayedTime = time.time()
-                            randomDisplayMode = True # stay in this mode until the button is pressed again
-                            lastImageDisplayedTime = 0 # should display a picture immediately
+                        # if the last command was more than 90 seconds ago, then display history
+                        if (time.time() - lastCommandTime > 90):
+                            print ("randomDisplayMode activated")
+                            lastCommandTime = time.time()
+                            randomDisplayMode = True 
                             
-                        if randomDisplayMode:
-                            if time.time() - lastImageDisplayedTime > 15:
-
-                                display_random_history_image(labelForImageDisplay)
-                                lastImageDisplayedTime = time.time()
+                    if randomDisplayMode:
+                        display_random_history_image(labelForImageDisplay)
 
 
         if settings.isAudioKeywords: 
@@ -1146,200 +1523,31 @@ def main():
             settings.duration = 10
 
         # we have a command. Either a command line file argument, a menu command, or a button press
+        if executeImageGeneration:
 
-        # loop will normally process audio and display the images
-        # but if we're given a file then start at that step (processStep)
-        # and numLoops should be 1
-        for i in range(0, settings.numLoops, 1):
+            # loop through a number of picture generation cycles
+            for i in range(0, settings.numLoops, 1):
+                # this is where all the work happens
+                # collect audio, transcribe, summarize, extract keywords, generate images, display images
+                audioToPicture(settings, labelForImageDisplay, labelForMessageDisplay, labelForStatusDisplay, filePrefix)  # XXX
 
-            # format a time string to use as a file name
-            timestr = time.strftime("%Y%m%d-%H%M%S")
+                if not settings.isUsingHardwareButtons and settings.numLoops > 1: 
+                    # delay before the next for loop iteration, we don't do this when using hardware buttons
+                    print("delaying " + str(settings.autoLoopDelay) + " seconds...")
+                    time.sleep(settings.autoLoopDelay)            
 
-            soundFileName = ""
-            transcript = ""
-            summary = ""
-            keywords = ""
-            imageURLs = ""
+        # let the tkinter window events happen
+        update_main_window()
 
-            # Audio - get a recording.wav file
-            if settings.firstProcessStep <= processStep.Audio:
-
-                changeBlinkRate(BLINK_FOR_AUDIO_CAPTURE)
-
-                if settings.firstProcessStep < processStep.Audio:
-                    # record audio from the default microphone
-                    display_text_in_message_window("Speak Now\r\nYou have 10 seconds", labelForMessageDisplay)
-                    soundFileName = recordAudioFromMicrophone(settings.duration)
-                    display_text_in_message_window("Recording Complete, now analyzing", labelForMessageDisplay)
-
-                    if settings.isSaveFiles:
-                        print("Saving audio file: " + soundFileName)
-                        #copy the file to a new name with the time stamp
-                        shutil.copy(soundFileName, "history/" + filePrefix + timestr + "-recording" + ".wav")
-                        soundFileName = "history/" + filePrefix + timestr + "-recording" + ".wav"
-            
-                else:
-                    # use the file specified by the wav argument
-                    soundFileName = settings.inputFileName
-                    logger.info("Using audio file: " + settings.inputFileName)
-
-                changeBlinkRate(BLINK_STOP)
+        if settings.nextProcessStep in {processStep.UseAudioFile, processStep.UseTranscriptFile, 
+                                        processStep.UseSummaryFile, processStep.UseKeywordsFile, 
+                                        processStep.UseImageFile}:
+            # we're done with the command line file argument
+            gw.isQuitting = True 
+            print("Done with command line file argument. Pause for 15 seconds.")
+            time.sleep(15)
         
-            # Transcribe - set transcript
-            if settings.firstProcessStep <= processStep.Transcribe:
-            
-                changeBlinkRate(BLINK1)
-
-                if settings.firstProcessStep < processStep.Transcribe:
-                    # transcribe the recording
-                    transcript = getTranscript(soundFileName)
-                    logToFile.info("Transcript: " + transcript)
-
-                    if settings.isSaveFiles:
-                        f = open("history/" + filePrefix + timestr + "-rawtranscript" + ".txt", "w")
-                        f.write(transcript)
-                        f.close()
-                else:
-                    # use the text file specified 
-                    transcriptFile = open(settings.inputFileName, "r")
-                    # read the transcript file
-                    transcript = transcriptFile.read()
-                    logger.info("Using transcript file: " + settings.inputFileName)
-
-                changeBlinkRate(BLINK_STOP)
-
-                msg = f'I heard you say:\n\r "{transcript}" \n\r\n\rNow we wait for the images.'
-                display_text_in_message_window(msg, labelForMessageDisplay)
-
-            # Summary - set summary
-            if settings.firstProcessStep <= processStep.Summarize:
-
-                """ Skip summarization for now
-                changeBlinkRate(BLINK2)
-
-                if args.summary == 0:
-                    # summarize the transcript
-                    summary = getSummary(transcript)
-
-                    if args.savefiles:
-                        f = open("history/" + filePrefix + timestr + "-summary" + ".txt", "w")
-                        f.write(summary)
-                        f.close()
-
-                else:
-                    # use the text file specified by the transcript argument
-                    summaryFile = open(summaryArg, "r")
-                    # read the summary file
-                    summary = summaryFile.read()
-                    logger.info("Using summary file: " + summaryArg)
-                
-                changeBlinkRate(BLINK_STOP)
-                """
-
-
-            # Keywords - set keywords
-            if settings.firstProcessStep <= processStep.Keywords:
-
-                changeBlinkRate(BLINK3)
-
-                if not settings.isAudioKeywords:
-
-                    if settings.firstProcessStep < processStep.Keywords:
-                        # extract the keywords from the summary
-                        keywords = getAbstractForImageGen(transcript) 
-                        logToFile.info("Keywords: " + keywords)
-
-                        if settings.isSaveFiles:
-                            f = open("history/" + filePrefix + timestr + "-keywords" + ".txt", "w")
-                            f.write(keywords)
-                            f.close()
-
-                    else:
-                        # use the extract file specified by the extract argument
-                        summaryFile = open(settings.inputFileName, "r")
-                        # read the summary file
-                        keywords = summaryFile.read()
-                        logger.info("Using abstract file: " + settings.inputFileName)
-                    
-                else:
-                    # use the transcript as the keywords
-                    keywords = transcript
-
-                changeBlinkRate(BLINK_STOP)
-
-            # Image - set imageURL
-            if settings.firstProcessStep <= processStep.Image:
-
-                changeBlinkRate(BLINK4)
-
-                if settings.firstProcessStep < processStep.Image:
-
-                    # use the keywords to generate images
-                    try:
-                        imagesInfo = getImageURL(keywords)
-
-                        imageURLs = imagesInfo[0]
-                        imageModifiers = imagesInfo[1]
-
-                        # combine the images into one image
-                        newFileName = postProcessImages(imageURLs, imageModifiers, keywords, timestr, filePrefix)
-
-                        imageURLs = "file://" + os.getcwd() + "/" + newFileName
-                        logger.debug("imageURL: " + imageURLs)
-
-                        logToFile.info("Image file: " + newFileName)
-
-                    except Exception as e:
-
-                        print ("AI Image Error: " + str(e))
-                        logToFile.info("AI Image Error: " + str(e), exc_info=True)
-
-                        newFileName = generateErrorImage(e, timestr)
-
-                        imageURLs = "file://" + os.getcwd() + "/" + newFileName
-                        logger.debug("Error Image Created: " + imageURLs)       
-                
-                else:
-                    imageURLs = [settings.inputFileName]
-                    newFileName = settings.inputFileName
-                    logger.info("Using image file: " + settings.inputFileName )
-
-                changeBlinkRate(BLINK_STOP)
-                
-            # Display - display imageURL
-            
-            # display the image
-            changeBlinkRate(BLINK_SLOW)
-            logger.info("Displaying image...")
-
-            try:
-                display_image(newFileName, labelForImageDisplay)
-                display_text_in_message_window() # Hide the message window
-            except Exception as e:
-                logger.error("Error displaying image: " + newFileName, exc_info=True)
-                logger.error(e)
-            
-            update_main_window()
-            
-            changeBlinkRate(BLINK_STOP)
-
-            # The end of the for loop
-            changeBlinkRate(BLINK_STOP)
-            # are we running the command line file args?
-            if settings.firstProcessStep > processStep.NoneSpecified:
-                # We've done one loop to process a file and we're all done
-                gw.isQuitting = True
-                time.sleep(5)   # persist the image display for 5 seconds
-            else:
-                #delay before the next for loop iteration
-                if not settings.isUsingHardwareButtons:
-                    print("delaying " + str(settings.loopDelay) + " seconds...")
-                    time.sleep(settings.loopDelay)
-
-            # let the tkinter window events happen
-            update_main_window()
-            
-            # end of loop
+        # end of loop
 
     # all done
     if not g_isMacOS:
