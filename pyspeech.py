@@ -144,6 +144,7 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 import urllib.request
 import time
+import datetime
 import shutil
 import re
 import os
@@ -387,7 +388,7 @@ if not g_isMacOS:
 
 def showStatus(labelForStatusDisplay = None):
     '''show the status of the program'''
-    print("showStatus") 
+
     # get ip address and print it
     if not g_isMacOS:
         ipMsg = "IP Address: " + os.popen('hostname -I').read()
@@ -408,8 +409,11 @@ def showStatus(labelForStatusDisplay = None):
 
     # get the creation date of the oldest png file in the history directory
     oldestFile = min(pngFiles, key=os.path.getctime)
+    oldestFileTimestamp = os.path.getctime(oldestFile)
+    oldestFileDate = datetime.datetime.fromtimestamp(oldestFileTimestamp)
+    oldestFileDateFormatted = oldestFileDate.strftime("%m-%d-%Y")
     # get the creation date of oldestFile   
-    oldestFileDate = "Oldest file in history: " + time.ctime(os.path.getctime(oldestFile))
+    oldestFileDate = "Oldest file in history: " + oldestFileDateFormatted
     print (oldestFileDate)
 
     # get the number of files in randomImages directory
@@ -417,10 +421,20 @@ def showStatus(labelForStatusDisplay = None):
     idleFileCount = "Number of files in idleDisplayFiles: " + str(len(randomImagesFiles))
     print(idleFileCount)
 
-    msg = "Status \n" + ipMsg + "\n" + historyCount + "\n" + oldestFileDate + "\n" + idleFileCount  
+    msg = "Status:\n\n" + ipMsg + "\n" + historyCount + "\n" + oldestFileDate + "\n" + idleFileCount  
 
     display_text_in_status_window(msg, labelForStatusDisplay)
-    # slept for 10 seconds
+    # sleep for 10 seconds
+    time.sleep(10)
+    display_text_in_status_window()
+
+def showCommands(labelForStatusDisplay = None):
+    '''show the commands that can be used'''
+    msg = "Valid Spoken Commands:\n\n" + \
+        "    show status\n"+ \
+        "    show commands\n"
+    display_text_in_status_window(msg, labelForStatusDisplay)
+    # sleep for 10 seconds
     time.sleep(10)
     display_text_in_status_window()
 
@@ -429,6 +443,7 @@ def showStatus(labelForStatusDisplay = None):
 # the keyword is the first word in the command 
 voice_command_functions = {
     "show status": showStatus,
+    "show commands": showCommands,
 }
 
 
@@ -819,10 +834,23 @@ def create_main_window(usingHardwareButton):
                                 bg='#FF0000', fg='#000000')
         buttonQuit.grid(row=3, column=0, columnspan=2, padx=20, pady=20, sticky=tk.E)
 
+    labelCommandHint = tk.Label(gw.windowMain, text="Say 'show commands' for a list of commands.",
+                     font=("Helvetica", 18),
+                     justify=tk.LEFT,
+                     wraplength=300,
+                     bg='#52837D',
+                     fg='#FFFFFF',
+                     )
+    labelCommandHint = tk.Label(gw.windowMain, text="show commands", font=("Helvetica", 12),
+                     justify=tk.LEFT, wraplength=300, bg='#52837D', fg='#FFFFFF')
+    labelCommandHint.grid(row=4, column=0, columnspan=2, padx=50, pady=10, sticky=tk.W)
+
     labelForImage = tk.Label(gw.windowMain)
     labelForImage.configure(bg='#000000', highlightcolor="#f4ff55", 
                                 highlightthickness=10)
-    labelForImage.grid(row=0, column=3, rowspan=4, padx=(100,10), pady=10, sticky=tk.W)
+    labelForImage.grid(row=0, column=3, rowspan=5, padx=(100,10), pady=10, sticky=tk.W)
+
+    
 
     update_main_window()
 
@@ -926,8 +954,8 @@ def create_status_window():
     frameForMessage.grid_rowconfigure(0, weight=1)
 
     labelTextLong2 = tk.Label(frameForMessage,
-                     font=("Helvetica", 28),
-                     justify=tk.CENTER,
+                     font=("Helvetica", 24),
+                     justify=tk.LEFT,
                      wraplength=messageWindowWidth-80,
                      bg='#FFFFFF',
                      fg='#000000',
@@ -946,23 +974,25 @@ def create_status_window():
 
 def display_text_in_status_window(message=None, labelToUse=None):
     '''
-    display message in the message window
+    display message in the status window
     if labelToUse is None, then hide the window
     '''
     global gw
       
     if (labelToUse is None):
-
         gw.windowForStatus.withdraw() # Hide the message window
         
     else:
-
-        print("display_text_in_status_window: " + message)
         labelToUse.configure(text=message,)
         gw.windowForStatus.deiconify() # Show the window now that it has a message
 
     gw.windowForStatus.update_idletasks()
     gw.windowForStatus.update()
+
+    display_text_in_message_window()
+    gw.windowForMessages.update_idletasks()
+    gw.windowForMessages.update()
+
 
 def display_text_in_message_window(message=None, labelToUse=None):
     '''
@@ -972,11 +1002,9 @@ def display_text_in_message_window(message=None, labelToUse=None):
     global gw
       
     if (labelToUse is None):
-
         gw.windowForMessages.withdraw() # Hide the message window
         
     else:
-
         labelToUse.configure(text=message,)
         gw.windowForMessages.deiconify() # Show the window now that it has a message
 
@@ -1238,8 +1266,7 @@ def audioToPicture(settings, labelForImageDisplay, labelForMessageDisplay, label
             if keyword.lower() in transcript.lower():
                 # perform the corresponding action for the keyword
                 voice_command_functions[keyword](labelForStatusDisplay)
-                #delay before the next for loop iteration
-                time.sleep(10)
+                print("voice command done")
                 nextProcessStep = processStep.Done
     
     # Summary - set summary
@@ -1510,7 +1537,6 @@ def main():
                     else:
                         # if the last command was more than 90 seconds ago, then display history
                         if (time.time() - lastCommandTime > 90):
-                            print ("randomDisplayMode activated")
                             lastCommandTime = time.time()
                             randomDisplayMode = True 
                             
