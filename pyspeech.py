@@ -421,7 +421,13 @@ def showStatus(labelForStatusDisplay = None):
     idleFileCount = "Number of files in idleDisplayFiles: " + str(len(randomImagesFiles))
     print(idleFileCount)
 
-    msg = "Status:\n\n" + ipMsg + "\n" + historyCount + "\n" + oldestFileDate + "\n" + idleFileCount  
+    # get the disk free space
+    total, used, free = shutil.disk_usage("/")
+    freeSpace =  "{:.2f}".format(free / (1024*1024*1024)) + " GB"
+
+    msg =("Status:\n\n" + ipMsg + "\n" + historyCount + "\n" 
+        + oldestFileDate + "\n" + idleFileCount + "\n" 
+        + "Free Space: " + freeSpace )
 
     display_text_in_status_window(msg, labelForStatusDisplay)
     # sleep for 10 seconds
