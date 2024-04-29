@@ -781,7 +781,10 @@ def create_main_window(usingHardwareButton):
     # find the screen size and center the window
     screen_width = gw.windowMain.winfo_screenwidth()
     screen_height = gw.windowMain.winfo_screenheight()
-    gw.windowMain.minsize(int(screen_width*.8), int(screen_height*.9))
+    # gw.windowMain.minsize(int(screen_width*.8), int(screen_height*.9))
+    #set window size to a bit less than full screen
+    gw.windowMain.geometry(str(int(screen_width*.95)) + "x" + str(int(screen_height*.95)))
+    #set window position
     gw.windowMain.geometry("+%d+%d" % (screen_width*0.02, screen_height*0.02))
     gw.windowMain.configure(bg='#52837D')
    
@@ -851,12 +854,14 @@ def create_main_window(usingHardwareButton):
                      justify=tk.LEFT, wraplength=300, bg='#52837D', fg='#FFFFFF')
     labelCommandHint.grid(row=4, column=0, columnspan=2, padx=50, pady=10, sticky=tk.W)
 
+    # add a label to display the images
     labelForImage = tk.Label(gw.windowMain)
-    labelForImage.configure(bg='#000000', highlightcolor="#f4ff55", 
-                                highlightthickness=10)
-    labelForImage.grid(row=0, column=3, rowspan=5, padx=(100,10), pady=10, sticky=tk.W)
-
     
+    # keep image label square
+    #labelDimensions = int( mainWindowHeight*0.95)
+    labelForImage.configure(bg='#000000', highlightcolor="#f4ff55", 
+                                highlightthickness=10,) # width=labelDimensions, height=labelDimensions)
+    labelForImage.grid(row=0, column=3, rowspan=5, padx=(100,0), pady=10, sticky=tk.W)
 
     update_main_window()
 
@@ -1036,15 +1041,14 @@ def display_image(image_path, label=None):
     try:
         img = Image.open(image_path)
         #resize the image to fit the window
-        screen_height = gw.windowMain.winfo_screenheight()
-        resizeFactor = 0.9 
-        new_width = int(screen_height * resizeFactor * img.width / img.height)
-        new_height = int(screen_height * resizeFactor)
-        if img.width < 520:
-            img = img.resize((new_width,new_height), Image.NEAREST)
-        #images are typically 1024 x 1074   (1.05) (.95)
-        elif img.height > screen_height-100:
-            img = img.resize((new_width,new_height), Image.NEAREST)
+        resizeFactor = 0.95
+        window_height = gw.windowMain.winfo_height()
+        labelDimensions = int(window_height * resizeFactor)
+        label.configure(width=labelDimensions, height=labelDimensions)
+        
+        new_width = int(labelDimensions * img.width / img.height)
+        new_height = int(labelDimensions)
+        img = img.resize((new_width,new_height), Image.NEAREST)
 
         # Convert the image to a PhotoImage
         photoImage = ImageTk.PhotoImage(img)
