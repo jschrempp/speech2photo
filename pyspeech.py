@@ -797,11 +797,10 @@ def create_main_window(usingHardwareButton):
     labelTextLong = tk.Label(gw.windowMain, text=INSTRUCTIONS_TEXT, 
                      font=("Helvetica", 28),
                      justify=tk.CENTER,
-                     wraplength=600,
+                     wraplength=450,
                      bg='#52837D',
                      fg='#FFFFFF',
                      )
-    labelTextLong.grid(row=0, column=0, columnspan=2, padx=(50,25), sticky=tk.W)
 
     # add the QR to the window
     imgQR = Image.open("S2PQR.png")
@@ -811,7 +810,6 @@ def create_main_window(usingHardwareButton):
                     image=photoImage,
                     bg='#52837D')
     labelQR.image = photoImage  # Keep a reference to the image to prevent it from being garbage collected
-    labelQR.grid(row=1, column=0, padx=(50,10), pady=10, sticky=tk.E)
 
     # add QR instructions to the window
     labelQRText = tk.Label(gw.windowMain, text="Scan this QR code for instructions on how to "
@@ -822,7 +820,6 @@ def create_main_window(usingHardwareButton):
                      bg='#52837D',
                      fg='#FFFFFF',
                      )
-    labelQRText.grid(row=1, column=1, padx=(10,50), pady=10, sticky=tk.W)
 
     # add credits to the window
     labelCreditsText = tk.Label(gw.windowMain, text="Created by Jim Schrempp at Maker Nexus in Sunnyvale, California.",
@@ -832,16 +829,12 @@ def create_main_window(usingHardwareButton):
                      bg='#52837D',
                      fg='#FFFFFF',
                      )
-    labelCreditsText.grid(row=2, column=0, columnspan=2, padx=50, pady=10, sticky=tk.W)
 
-    if not usingHardwareButton:
-        # add buttons for the GUI user
+    # add a quit button to the window
+    buttonQuit = tk.Button(gw.windowMain, text="Quit", command=quitButtonPressed,
+                            font=("Helvetica", 24), 
+                            bg='#FF0000', fg='#000000')
 
-        # add a quit button to the window
-        buttonQuit = tk.Button(gw.windowMain, text="Quit", command=quitButtonPressed,
-                                font=("Helvetica", 24), 
-                                bg='#FF0000', fg='#000000')
-        buttonQuit.grid(row=3, column=0, columnspan=2, padx=20, pady=20, sticky=tk.E)
 
     labelCommandHint = tk.Label(gw.windowMain, text="Say 'show commands' for a list of commands.",
                      font=("Helvetica", 18),
@@ -852,16 +845,42 @@ def create_main_window(usingHardwareButton):
                      )
     labelCommandHint = tk.Label(gw.windowMain, text="show commands", font=("Helvetica", 12),
                      justify=tk.LEFT, wraplength=300, bg='#52837D', fg='#FFFFFF')
-    labelCommandHint.grid(row=4, column=0, columnspan=2, padx=50, pady=10, sticky=tk.W)
 
     # add a label to display the images
     labelForImage = tk.Label(gw.windowMain)
     
-    # keep image label square
-    #labelDimensions = int( mainWindowHeight*0.95)
+    # The label will be dimensioned when the image is loaded
     labelForImage.configure(bg='#000000', highlightcolor="#f4ff55", 
-                                highlightthickness=10,) # width=labelDimensions, height=labelDimensions)
-    labelForImage.grid(row=0, column=3, rowspan=5, padx=(100,0), pady=10, sticky=tk.W)
+                                highlightthickness=10,) 
+    
+    # set up the grid
+    gw.windowMain.grid_columnconfigure(0, weight=99, minsize=0)
+    gw.windowMain.grid_columnconfigure(1, weight=99, minsize=10)
+    gw.windowMain.grid_columnconfigure(2, weight=2,  minsize=100)
+    gw.windowMain.grid_columnconfigure(3, weight=2,  minsize=100)
+    gw.windowMain.grid_columnconfigure(4, weight=99, minsize=10)
+    gw.windowMain.grid_columnconfigure(5, weight=99, minsize=10)
+    gw.windowMain.grid_columnconfigure(6, weight=1)
+    gw.windowMain.grid_columnconfigure(7, weight=99, minsize=10)
+
+    labelTextLong.grid(   row=0, column=1, columnspan=4, padx=(0,0),            sticky=tk.EW)
+    labelForImage.grid(   row=0, column=6, rowspan=5,    padx=(0,0),   pady=10, sticky=tk.NSEW)
+    labelQR.grid(         row=1, column=2,               padx=(0,10),  pady=10, sticky=tk.NSEW)
+    labelQRText.grid(     row=1, column=3,               padx=(10,0),  pady=10, sticky=tk.W)
+    labelCreditsText.grid(row=2, column=1, columnspan=4, padx=0,       pady=10, sticky=tk.W)
+    buttonQuit.grid(      row=3, column=2, columnspan=3, padx=0,       pady=20, sticky=tk.E)
+    labelCommandHint.grid(row=4, column=0, columnspan=3, padx=10,      pady=10, sticky=tk.W)
+
+    if usingHardwareButton:
+        # remove button from the window
+        buttonQuit.grid_remove()
+
+    '''
+    # good debug code
+    # add a border around all the widgets
+    for widget in [labelTextLong, labelQR, labelQRText, labelCreditsText, buttonQuit, labelCommandHint]:
+        widget.configure(highlightcolor="#f4ff55", highlightthickness=10)
+    '''
 
     update_main_window()
 
@@ -1613,6 +1632,11 @@ except Exception as e:
     logToFile.error(e, exc_info=True)
 
 exit()
+
+
+
+
+
 
 
 
