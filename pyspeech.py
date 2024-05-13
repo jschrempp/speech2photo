@@ -486,7 +486,6 @@ def recordAudioFromMicrophone(duration):
         logger.debug('sample_rate: %d; channels: %d', sample_rate, channels)
 
         logger.info("Recording %d seconds...", duration)
-        os.system('say "Recording."')
         # Record audio from the default microphone
         recording = sounddevice.rec(
             int(duration * sample_rate), 
@@ -499,8 +498,6 @@ def recordAudioFromMicrophone(duration):
 
         # Save the recording to a WAV file
         soundfile.write(soundFileName, recording, sample_rate)
-
-        os.system('say "Thank you. I am now analyzing."')
 
     else:
 
@@ -1254,8 +1251,10 @@ def audioToPicture(settings, labelForImageDisplay, labelForMessageDisplay, label
 
         # record audio from the default microphone
         display_text_in_message_window("Speak Now\r\nYou have 10 seconds", labelForMessageDisplay)
+        if g_isMacOS: os.system('say "Recording."')
         soundFileName = recordAudioFromMicrophone(settings.duration)
         display_text_in_message_window("Recording Complete, now analyzing", labelForMessageDisplay)
+        if g_isMacOS: os.system('say "Recording complete."')
 
         if settings.isSaveFiles:
             print("Saving audio file: " + soundFileName)
@@ -1455,6 +1454,9 @@ def main():
     # create the status window
     labelForStatusDisplay = create_status_window()
     display_text_in_status_window() # hide the status window
+
+    # capture a second of audio to initialize driver on RPi
+    recordAudioFromMicrophone(.25)
 
     # ----------------------
     # Main Loop 
