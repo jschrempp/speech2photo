@@ -1494,7 +1494,7 @@ def main():
                 print("   q: Quit")
 
                 inputCommand = ''
-                while inputCommand == '':
+                while inputCommand == '' and not gw.isQuitting:
                     
                     if select.select([sys.stdin], [], [], 0)[0]:
                         while sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
