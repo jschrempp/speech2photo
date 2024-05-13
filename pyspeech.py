@@ -789,10 +789,10 @@ def create_main_window(usingHardwareButton):
     gw.windowMain.configure(bg='#52837D')
    
     # Instructions text
-    INSTRUCTIONS_TEXT = ('\r\nWelcome to\rSpeech 2 Picture\n\rWhen you are ready, press and release the'
-                    + ' button. You will have 10 seconds to speak your instructions. Then wait.'
+    INSTRUCTIONS_TEXT = ('\r\nTRY ME NOW !\rAn Interactive Art Exhibit\n\rWhen you are ready, press and release the'
+                    + ' button. The light will flash quickly. You will have 10 seconds to speak your instructions. Then wait.'
                     + ' An image will appear shortly.'
-                    + '\r\nUntil then, enjoy some previous images!')
+                    + '\r\nUntil then, enjoy some previous "promptography" images!')
 
     labelTextLong = tk.Label(gw.windowMain, text=INSTRUCTIONS_TEXT, 
                      font=("Helvetica", 28),
