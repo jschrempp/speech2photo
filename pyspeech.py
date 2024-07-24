@@ -810,8 +810,7 @@ def create_main_window(usingHardwareButton):
     labelQR.image = photoImage  # Keep a reference to the image to prevent it from being garbage collected
 
     # add QR instructions to the window
-    labelQRText = tk.Label(gw.windowMain, text="Scan this QR code for instructions on how to "
-                           + "make your own speech to picture generator.", 
+    labelQRText = tk.Label(gw.windowMain, text="Scan this QR code for more instructions and tips.", 
                      font=("Helvetica", 18),
                      justify=tk.LEFT,
                      wraplength=280,
@@ -920,6 +919,9 @@ def create_message_window():
     gw.windowForMessages.minsize(messageWindowWidth, messageWindowHeight)
     gw.windowForMessages.maxsize(messageWindowWidth, messageWindowHeight)
 
+    # print("message window x: " + str(messageWindowX))
+    # print("message window y: " + str(messageWindowY))
+
     # Make cell column 0 row 0 expand to fill the window
     gw.windowForMessages.grid_columnconfigure(0, weight=1) 
     gw.windowForMessages.grid_rowconfigure(0, weight=1)
@@ -961,13 +963,17 @@ def create_status_window():
     gw.windowForStatus.title("Status")
 
     # center this window over the image window
-    messageWindowWidth = 500
-    messageWindowHeight = 500
-    messageWindowX = gw.windowMain.winfo_x() + (0.5*gw.windowMain.winfo_width()) - (0.5*messageWindowWidth)
-    messageWindowY = gw.windowMain.winfo_y() + (0.5*gw.windowMain.winfo_height()) - (0.5*messageWindowHeight)
-    gw.windowForStatus.geometry("+%d+%d" % (messageWindowX,messageWindowY)) 
-    gw.windowForStatus.minsize(messageWindowWidth, messageWindowHeight)
-    gw.windowForStatus.maxsize(messageWindowWidth, messageWindowHeight)
+    statusWindowWidth = 800
+    statusWindowHeight = 600
+    statusWindowX = int(gw.windowMain.winfo_x() + (0.5*gw.windowMain.winfo_width()) - (0.5*statusWindowWidth))
+    statusWindowY = int(gw.windowMain.winfo_y() + (0.5*gw.windowMain.winfo_height()) - (0.5*statusWindowHeight))
+    #gw.windowForStatus.geometry("+%d+%d" % (statusWindowX,statusWindowY)) 
+    gw.windowForStatus.geometry("+%d+%d" % (200,200)) 
+    gw.windowForStatus.minsize(statusWindowWidth, statusWindowHeight)
+    gw.windowForStatus.maxsize(statusWindowWidth, statusWindowHeight)
+
+    # print ("statusWindowX: " + str(statusWindowX))
+    # print ("statusWindowY: " + str(statusWindowY))
 
     # Make cell column 0 row 0 expand to fill the window
     gw.windowForStatus.grid_columnconfigure(0, weight=1) 
@@ -984,7 +990,7 @@ def create_status_window():
     labelTextLong2 = tk.Label(frameForMessage,
                      font=("Helvetica", 24),
                      justify=tk.LEFT,
-                     wraplength=messageWindowWidth-80,
+                     wraplength=statusWindowWidth-80,
                      bg='#FFFFFF',
                      fg='#000000',
                      text="initial test message",
@@ -1285,7 +1291,6 @@ def audioToPicture(settings, labelForImageDisplay, labelForMessageDisplay, label
         display_text_in_message_window(msg, labelForMessageDisplay)
         nextProcessStep = processStep.Summarize
 
-        nextProcessStep = processStep.Summarize
         changeBlinkRate(BLINK_STOP)
     
     # always check for a command in the transcript
@@ -1366,18 +1371,26 @@ def audioToPicture(settings, labelForImageDisplay, labelForMessageDisplay, label
 
             logToFile.info("Image file: " + newImageFileName)
 
+            changeBlinkRate(BLINK_STOP)
+            nextProcessStep = processStep.DisplayImage  
+
         except Exception as e:
 
             print ("AI Image Error: " + str(e))
             logToFile.info("AI Image Error: " + str(e), exc_info=True)
 
-            newImageFileName = generateErrorImage(e, timestr)
+            if 'content_policy_violation' in str(e):
+                # this is a common error, so we'll display a message to the user
+                msg = f'Content Policy Violation.  Your prompt may contain text that is not allowed by our safety system.'
+            else:
+                msg = f'We had an error:\n\r "{str(e)}" \n\r\n\rPlease try again.'
+                
+            display_text_in_message_window(msg, labelForMessageDisplay)
+            time.sleep(5) # delay for 5 seconds
+            display_text_in_message_window() # Hide the message window
 
-            imageURLs = "file://" + os.getcwd() + "/" + newImageFileName
-            logger.debug("Error Image Created: " + imageURLs)   
-
-        changeBlinkRate(BLINK_STOP)
-        nextProcessStep = processStep.DisplayImage    
+            changeBlinkRate(BLINK_STOP)
+            nextProcessStep = processStep.Done  
         
 
     # Display - display imageURL
