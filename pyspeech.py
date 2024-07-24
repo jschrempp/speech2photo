@@ -1382,12 +1382,17 @@ def audioToPicture(settings, labelForImageDisplay, labelForMessageDisplay, label
             if 'content_policy_violation' in str(e):
                 # this is a common error, so we'll display a message to the user
                 msg = f'Content Policy Violation.  Your prompt may contain text that is not allowed by our safety system.'
+            elif 'something went wrong' in str(e):
+                msg = f'Something went wrong with the OpenAI image generation.  Please try again'
+            elif 'server had an error' in str(e):
+                msg = f'OpenAI had an unspecified server error.  Please try again'
             else:
                 msg = f'We had an error:\n\r "{str(e)}" \n\r\n\rPlease try again.'
-                
+
             display_text_in_message_window(msg, labelForMessageDisplay)
             time.sleep(5) # delay for 5 seconds
             display_text_in_message_window() # Hide the message window
+            update_main_window()
 
             changeBlinkRate(BLINK_STOP)
             nextProcessStep = processStep.Done  
