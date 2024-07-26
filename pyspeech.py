@@ -158,6 +158,7 @@ from enum import IntEnum
 from PIL import Image, ImageDraw, ImageFont, ImageTk
 
 import openai
+S2P_VERSION = "1.1"
 
 g_isMacOS = False
 if (platform.system() == "Darwin"):
@@ -185,7 +186,9 @@ else:
 LOOPS_MAX = 10 # Set the number of times to loop when in auto mode
 
 # Prompt for abstraction
-PROMPT_FOR_ABSTRACTION = "What is the most interesting concept in the following text \
+# PROMPT_FOR_ABSTRACTION = "What is the most interesting concept in the following text \
+#   expressing the answer as a noun phrase, but not in a full sentence "
+PROMPT_FOR_ABSTRACTION = "In 15 words or less, what are the most interesting concepts in the following text \
     expressing the answer as a noun phrase, but not in a full sentence "
 
 # image prompt modifiers
@@ -574,6 +577,7 @@ def getTranscript(wavFileName):
 
 def getSummary(textInput):
     '''summarize the transcript and return the summary'''
+    '''Used for very long text input - like minutes of speech'''
     
     # summarize the transcript 
     logger.info("Summarizing...")
@@ -819,7 +823,7 @@ def create_main_window(usingHardwareButton):
                      )
 
     # add credits to the window
-    labelCreditsText = tk.Label(gw.windowMain, text="Created by Jim Schrempp at Maker Nexus in Sunnyvale, California.",
+    labelCreditsText = tk.Label(gw.windowMain, text="Created by Jim Schrempp at Maker Nexus in Sunnyvale, California." ,
                      font=("Helvetica", 18),
                      justify=tk.LEFT,
                      wraplength=300,
@@ -840,7 +844,7 @@ def create_main_window(usingHardwareButton):
                      bg='#52837D',
                      fg='#FFFFFF',
                      )
-    labelCommandHint = tk.Label(gw.windowMain, text="show commands", font=("Helvetica", 12),
+    labelCommandHint = tk.Label(gw.windowMain, text="show commands  v: " + S2P_VERSION, font=("Helvetica", 12),
                      justify=tk.LEFT, wraplength=300, bg='#52837D', fg='#FFFFFF')
 
     # add a label to display the images
@@ -1335,8 +1339,9 @@ def audioToPicture(settings, labelForImageDisplay, labelForMessageDisplay, label
 
         changeBlinkRate(BLINK3)
 
-        if not settings.isAudioKeywords:
-
+        #if not settings.isAudioKeywords:
+        # does transcript contain more than 20 blank spaces?
+        if transcript.count(" ") > 20:
             # extract the keywords from the summary
             keywords = getAbstractForImageGen(transcript) 
             logToFile.info("Keywords: " + keywords)
@@ -1397,6 +1402,7 @@ def audioToPicture(settings, labelForImageDisplay, labelForMessageDisplay, label
             changeBlinkRate(BLINK_STOP)
             nextProcessStep = processStep.Done  
         
+
 
     # Display - display imageURL
     if nextProcessStep == processStep.DisplayImage:
