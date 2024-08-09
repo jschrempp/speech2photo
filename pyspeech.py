@@ -583,7 +583,7 @@ def getSummary(textInput):
     logger.info("Summarizing...")
 
     responseSummary = client.chat.completions.create(
-                        model="gpt-3.5-turbo",
+                        model="gpt-4o-mini",
                         messages=[
                             {"role": "user", "content" : 
                             f"Please summarize the following text:\n{textInput}" }
@@ -610,7 +610,7 @@ def getAbstractForImageGen(inputText):
     loggerTrace.debug ("prompt for extract: " + prompt)
 
     responseForImage = client.chat.completions.create(
-                        model="gpt-3.5-turbo",
+                        model="gpt-4o-mini",
                         messages=[
                             {"role": "user", "content": prompt}
                         ])
@@ -1659,6 +1659,7 @@ except Exception as e:
     logToFile.error(e, exc_info=True)
 
 exit()
+
 
 
 
